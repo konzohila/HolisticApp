@@ -1,0 +1,35 @@
+name: Build .NET MAUI Android App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'  # Passe diese Version an deine installierte Version an
+
+      # Optional: Installiere OpenJDK 17 falls nötig
+      - name: Install OpenJDK 17
+        run: brew install openjdk@17
+
+      - name: Set up Java Environment
+        run: |
+          sudo ln -sfn /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+          echo "JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" >> $GITHUB_ENV
+
+      - name: Restore .NET Workloads
+        run: dotnet workload restore
+
+      - name: Build the Project
+        run: dotnet build --configuration Release
