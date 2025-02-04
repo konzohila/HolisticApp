@@ -1,14 +1,25 @@
-﻿namespace HolisticApp;
+﻿using System;
+using System.IO;
+using HolisticApp.Data;
+using Microsoft.Maui.Controls;
 
-public partial class App : Application
+namespace HolisticApp
 {
-    public App()
+    public partial class App : Application
     {
-        InitializeComponent();
-    }
+        // Statische Instanz, auf die von überall zugegriffen werden kann
+        public static UserDatabase UserDatabase { get; private set; }
 
-    protected override Window CreateWindow(IActivationState? activationState)
-    {
-        return new Window(new AppShell());
+        public App()
+        {
+            InitializeComponent();
+
+            // Erstelle den Pfad zur Datenbank
+            string dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UserDatabase.db3");
+            UserDatabase = new UserDatabase(dbPath);
+
+            // Setze die MainPage als NavigationPage, um Navigation zwischen Seiten zu ermöglichen
+            MainPage = new NavigationPage(new Views.LoginPage());
+        }
     }
 }
