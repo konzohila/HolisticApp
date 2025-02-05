@@ -18,16 +18,7 @@ namespace HolisticApp.Data
         private async Task<MySqlConnection> GetConnectionAsync()
         {
             var connection = new MySqlConnection(_connectionString);
-            try
-            {
-                await connection.OpenAsync();
-                Console.WriteLine("Verbindung erfolgreich!");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Fehler beim Verbinden mit der Datenbank:");
-                Console.WriteLine(ex.Message); // Detaillierte Fehlermeldung ausgeben
-            }
+            await connection.OpenAsync();
             return connection;
         }
 
