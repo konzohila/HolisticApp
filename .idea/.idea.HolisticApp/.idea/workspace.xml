@@ -15,12 +15,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d47b4ffa-b3c5-4ffc-ac72-c534443e4d7e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.HolisticApp/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.HolisticApp/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HolisticApp/App.xaml.cs" beforeDir="false" afterPath="$PROJECT_DIR$/HolisticApp/App.xaml.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HolisticApp/Data/UserDatabase.cs" beforeDir="false" afterPath="$PROJECT_DIR$/HolisticApp/Data/UserDatabase.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HolisticApp/HolisticApp.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/HolisticApp/HolisticApp.csproj" afterDir="false" />
-    </list>
+    <list default="true" id="d47b4ffa-b3c5-4ffc-ac72-c534443e4d7e" name="Changes" comment="added mysql database" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -42,6 +37,8 @@
   }
 }</component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///Users/sven/RiderProjects/HolisticApp/HolisticApp/Data/UserDatabase.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///Users/sven/RiderProjects/HolisticApp/HolisticApp/Data/UserDatabase.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file:///usr/local/share/dotnet/packs/Microsoft.Android.Sdk.Darwin/35.0.39/tools/Xamarin.Android.Tooling.targets" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="InvalidFacetManager">
@@ -131,8 +128,17 @@
       <workItem from="1738697315396" duration="4693000" />
       <workItem from="1738734377174" duration="2976000" />
       <workItem from="1738755911608" duration="4082000" />
-      <workItem from="1738768584938" duration="559000" />
+      <workItem from="1738768584938" duration="889000" />
     </task>
+    <task id="LOCAL-00001" summary="added mysql database">
+      <option name="closed" value="true" />
+      <created>1738769350983</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1738769350983</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -143,7 +149,8 @@
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="added registration and sqlite" />
-    <option name="LAST_COMMIT_MESSAGE" value="added registration and sqlite" />
+    <MESSAGE value="added mysql database" />
+    <option name="LAST_COMMIT_MESSAGE" value="added mysql database" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
