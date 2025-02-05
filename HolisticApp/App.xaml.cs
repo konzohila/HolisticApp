@@ -13,10 +13,10 @@ namespace HolisticApp
         public App()
         {
             InitializeComponent();
-
-            // Erstelle den Pfad zur Datenbank
-            string dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UserDatabase.db3");
-            UserDatabase = new UserDatabase(dbPath);
+            
+            // Verbindungszeichenfolge für MySQL
+            string connectionString = "Server=10.0.2.2;Database=holisticapp;User=root;Password=;";
+            UserDatabase = new UserDatabase(connectionString);
 
             // Setze die MainPage als NavigationPage, um Navigation zwischen Seiten zu ermöglichen
             MainPage = new NavigationPage(new Views.LoginPage());

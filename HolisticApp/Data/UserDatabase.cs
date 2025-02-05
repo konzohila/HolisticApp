@@ -1,42 +1,129 @@
-using SQLite;
 using System.Collections.Generic;
+using System.Data;
 using System.Threading.Tasks;
 using HolisticApp.Models;
+using MySqlConnector;
 
 namespace HolisticApp.Data
 {
     public class UserDatabase
     {
-        readonly SQLiteAsyncConnection _database;
+        private readonly string _connectionString;
 
-        public UserDatabase(string dbPath)
+        public UserDatabase(string connectionString)
         {
-            _database = new SQLiteAsyncConnection(dbPath);
-            // Erstelle die Tabelle, falls sie noch nicht existiert
-            _database.CreateTableAsync<User>().Wait();
+            _connectionString = connectionString;
         }
 
-        public Task<List<User>> GetUsersAsync()
+        private async Task<MySqlConnection> GetConnectionAsync()
         {
-            return _database.Table<User>().ToListAsync();
+            var connection = new MySqlConnection(_connectionString);
+            try
+            {
+                await connection.OpenAsync();
+                Console.WriteLine("Verbindung erfolgreich!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Fehler beim Verbinden mit der Datenbank:");
+                Console.WriteLine(ex.Message); // Detaillierte Fehlermeldung ausgeben
+            }
+            return connection;
         }
 
-        public Task<User> GetUserAsync(int id)
+        public async Task<List<User>> GetUsersAsync()
         {
-            return _database.Table<User>().Where(u => u.Id == id).FirstOrDefaultAsync();
+            var users = new List<User>();
+
+            using (var connection = await GetConnectionAsync())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM Users";
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        users.Add(new User
+                        {
+                            Id = reader.GetInt32("Id"),
+                            Username = reader.GetString("Username"),
+                            Email = reader.GetString("Email"),
+                            PasswordHash = reader.GetString("PasswordHash")
+                        });
+                    }
+                }
+            }
+
+            return users;
         }
 
-        public Task<int> SaveUserAsync(User user)
+        public async Task<User> GetUserAsync(int id)
         {
-            if (user.Id != 0)
-                return _database.UpdateAsync(user);
-            else
-                return _database.InsertAsync(user);
+            using (var connection = await GetConnectionAsync())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM Users WHERE Id = @id";
+                command.Parameters.AddWithValue("@id", id);
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        return new User
+                        {
+                            Id = reader.GetInt32("Id"),
+                            Username = reader.GetString("Username"),
+                            Email = reader.GetString("Email"),
+                            PasswordHash = reader.GetString("PasswordHash")
+                        };
+                    }
+                }
+            }
+
+            return null;
         }
 
-        public Task<int> DeleteUserAsync(User user)
+        public async Task<int> SaveUserAsync(User user)
         {
-            return _database.DeleteAsync(user);
+            using (var connection = await GetConnectionAsync())
+            using (var command = connection.CreateCommand())
+            {
+                if (user.Id != 0)
+                {
+                    // Update eines bestehenden Benutzers
+                    command.CommandText = @"
+                        UPDATE Users
+                        SET Username = @username, Email = @email, PasswordHash = @passwordHash
+                        WHERE Id = @id";
+                    command.Parameters.AddWithValue("@id", user.Id);
+                }
+                else
+                {
+                    // Einfügen eines neuen Benutzers
+                    command.CommandText = @"
+                        INSERT INTO Users (Username, Email, PasswordHash)
+                        VALUES (@username, @email, @passwordHash)";
+                }
+
+                command.Parameters.AddWithValue("@username", user.Username);
+                command.Parameters.AddWithValue("@email", user.Email);
+                command.Parameters.AddWithValue("@passwordHash", user.PasswordHash);
+
+                return await command.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<int> DeleteUserAsync(int id)
+        {
+            using (var connection = await GetConnectionAsync())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "DELETE FROM Users WHERE Id = @id";
+                command.Parameters.AddWithValue("@id", id);
+
+                return await command.ExecuteNonQueryAsync();
+            }
         }
     }
 }
