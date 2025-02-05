@@ -1,0 +1,34 @@
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HolisticApp.Views.AnamnesisPage"
+             Title="Anamnese">
+    <ContentPage.Content>
+        <StackLayout Padding="20" Spacing="20">
+      
+            <!-- Begrüßungstext -->
+            <Label Text="Herzlich Willkommen. Bitte geben Sie einige Informationen zu ihrem Gesundheitszustand" 
+                   FontSize="Medium" 
+                   HorizontalOptions="Center" />
+
+            <!-- Frage nach aktuellen Beschwerden -->
+            <Label Text="Haben Sie aktuelle Beschwerden?" FontSize="Small" />
+            <!-- Hier verwenden wir einen Switch als Ja/Nein-Schalter -->
+            <Switch x:Name="complaintSwitch" Toggled="OnComplaintToggled" />
+
+            <!-- Label und Picker werden nur angezeigt, wenn der Switch auf "Ja" steht -->
+            <Label x:Name="complaintLabel" Text="Bitte wählen Sie Ihre Beschwerden:" IsVisible="False" />
+            <Picker x:Name="complaintPicker" Title="Wählen Sie eine Beschwerde aus" IsVisible="False">
+                <Picker.Items>
+                    <x:String>Verdauungsbeschwerden</x:String>
+                    <x:String>Kopfschmerzen</x:String>
+                    <x:String>Rückenschmerzen</x:String>
+                    <!-- Weitere Optionen können hier hinzugefügt werden -->
+                </Picker.Items>
+            </Picker>
+
+            <!-- Button zum Speichern -->
+            <Button Text="Speichern" Clicked="OnSaveClicked" />
+
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>

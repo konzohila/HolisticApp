@@ -23,7 +23,7 @@ namespace HolisticApp.Views
                 return;
             }
 
-            // Lese alle Benutzer aus der Datenbank und suche den, der den Eingaben entspricht.
+            // Benutzer anhand der Eingaben aus der Datenbank suchen
             var users = await App.UserDatabase.GetUsersAsync();
             var user = users.FirstOrDefault(u =>
                 u.Email.Equals(email, StringComparison.OrdinalIgnoreCase) &&
@@ -32,15 +32,15 @@ namespace HolisticApp.Views
             if (user != null)
             {
                 await DisplayAlert("Erfolg", "Login erfolgreich.", "OK");
-                // Hier kannst du zur Hauptseite der App navigieren
-                // z.B.: await Navigation.PushAsync(new MainPage());
+                // Navigation zur neuen Anamnese-View mit Übergabe des eingeloggten Benutzers
+                await Navigation.PushAsync(new AnamnesisPage(user));
             }
             else
             {
                 await DisplayAlert("Fehler", "Ungültige Anmeldedaten.", "OK");
             }
         }
-
+        
         async void OnRegisterClicked(object sender, EventArgs e)
         {
             // Wechsle zur Registrierungsseite
