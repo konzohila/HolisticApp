@@ -5,12 +5,11 @@
     x:Class="HolisticApp.Views.HomePage"
     Title="Übersicht">
     <ContentPage.ToolbarItems>
-        <!-- Logout-Button oben rechts -->
-        <ToolbarItem Text="Logout" Clicked="OnLogoutClicked" Priority="0" Order="Primary" />
+        <!-- Toolbar-Button mit Benutzerinitialen -->
+        <ToolbarItem x:Name="UserToolbarItem" Text="??" Clicked="OnUserToolbarItemClicked" Priority="0" Order="Primary" />
     </ContentPage.ToolbarItems>
     <ContentPage.Content>
         <StackLayout Padding="20" Spacing="20">
-            <!-- Beispiel-Buttons ohne Logik, die später erweitert werden -->
             <Button Text="Anamnese" />
             <Button Text="Befunde hochladen" />
             <Button Text="Chat" />

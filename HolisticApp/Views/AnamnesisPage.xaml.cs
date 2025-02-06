@@ -44,8 +44,7 @@ namespace HolisticApp.Views
             if (result > 0)
             {
                 // Setze Flag, dass die Anamnese abgeschlossen ist
-                Preferences.Set("AnamnesisCompleted", true);
-
+                Preferences.Set($"AnamnesisCompleted_{_currentUser.Id}", true);
                 await DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
                 // Navigiere zur HomePage
                 await Navigation.PushAsync(new HomePage(_currentUser));

@@ -37,10 +37,10 @@ namespace HolisticApp.Views
                 Preferences.Set("LoggedInUserId", user.Id);
                 // Optional: ein Flag setzen, das angibt, ob die Anamnese bereits durchgeführt wurde
                 // Beispiel: "AnamnesisCompleted" auf false, falls dies noch nicht erfolgt ist
-                Preferences.Set("AnamnesisCompleted", false);
+                //Preferences.Set("AnamnesisCompleted", false);
 
                 // Navigation: Falls die Anamnese noch nicht abgeschlossen wurde, zur AnamnesePage, sonst zur HomePage
-                bool anamnesisCompleted = Preferences.Get("AnamnesisCompleted", false);
+                bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
                 if (!anamnesisCompleted)
                 {
                     await Navigation.PushAsync(new AnamnesisPage(user));

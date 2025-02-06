@@ -1,5 +1,7 @@
 ﻿using HolisticApp.Data;
 using HolisticApp.Views;
+using Microsoft.Maui.Storage;
+using System.Threading.Tasks;
 
 namespace HolisticApp
 {
@@ -11,21 +13,27 @@ namespace HolisticApp
         {
             InitializeComponent();
 
+            // Setze eine temporäre MainPage, um den Fehler zu vermeiden.
+            MainPage = new ContentPage { Content = new Label { Text = "Lade..." } };
+
             // Initialisiere die Datenbank (Passe den ConnectionString entsprechend an)
             UserDatabase = new UserDatabase("Server=10.0.2.2;Database=holisticapp;User=root;Password=;");
 
-            // Prüfe, ob bereits ein Benutzer eingeloggt ist
-            if (Preferences.ContainsKey("LoggedInUserId"))
+            // Starte die asynchrone Initialisierung
+            InitializeAsync();
+        }
+
+        private async void InitializeAsync()
+        {
+            var userId = Preferences.Get("LoggedInUserId", 0);
+            if (userId > 0)
             {
-                // Hier kannst du ggf. anhand der gespeicherten UserId den User aus der DB laden.
-                // Für den einfachen Fall: direkt zur HomePage navigieren.
-                // Optional: prüfe auch das Flag "AnamnesisCompleted"
-                bool anamnesisCompleted = Preferences.Get("AnamnesisCompleted", false);
-                MainPage = new NavigationPage(anamnesisCompleted ? new HomePage(null) : new AnamnesisPage(null));
+                var user = await UserDatabase.GetUserAsync(userId);
+                bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                MainPage = new NavigationPage(anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user));
             }
             else
             {
-                // Kein Benutzer eingeloggt, also LoginPage als Startseite
                 MainPage = new NavigationPage(new LoginPage());
             }
         }

@@ -45,7 +45,6 @@ namespace HolisticApp.Data
                     }
                 }
             }
-
             return users;
         }
 
@@ -71,7 +70,6 @@ namespace HolisticApp.Data
                     }
                 }
             }
-
             return null;
         }
 
