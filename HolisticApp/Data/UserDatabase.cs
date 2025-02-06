@@ -45,7 +45,6 @@ namespace HolisticApp.Data
                     }
                 }
             }
-
             return users;
         }
 
@@ -71,7 +70,6 @@ namespace HolisticApp.Data
                     }
                 }
             }
-
             return null;
         }
 
@@ -82,29 +80,33 @@ namespace HolisticApp.Data
             {
                 if (user.Id != 0)
                 {
-                    // Update eines bestehenden Benutzers
+                    // Update eines bestehenden Benutzers inklusive der neuen Spalte
                     command.CommandText = @"
-                        UPDATE Users
-                        SET Username = @username, Email = @email, PasswordHash = @passwordHash
-                        WHERE Id = @id";
+                UPDATE Users
+                SET Username = @username, 
+                    Email = @email, 
+                    PasswordHash = @passwordHash,
+                    CurrentComplaint = @currentComplaint
+                WHERE Id = @id";
                     command.Parameters.AddWithValue("@id", user.Id);
                 }
                 else
                 {
                     // Einfügen eines neuen Benutzers
                     command.CommandText = @"
-                        INSERT INTO Users (Username, Email, PasswordHash)
-                        VALUES (@username, @email, @passwordHash)";
+                INSERT INTO Users (Username, Email, PasswordHash, CurrentComplaint)
+                VALUES (@username, @email, @passwordHash, @currentComplaint)";
                 }
 
                 command.Parameters.AddWithValue("@username", user.Username);
                 command.Parameters.AddWithValue("@email", user.Email);
                 command.Parameters.AddWithValue("@passwordHash", user.PasswordHash);
+                command.Parameters.AddWithValue("@currentComplaint", user.CurrentComplaint ?? "Keine Beschwerden");
 
                 return await command.ExecuteNonQueryAsync();
             }
         }
-
+        
         public async Task<int> DeleteUserAsync(int id)
         {
             using (var connection = await GetConnectionAsync())

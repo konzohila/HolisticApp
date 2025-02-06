@@ -1,29 +1,41 @@
-﻿using System;
-using System.IO;
-using HolisticApp.Data;
-using Microsoft.Maui.Controls;
+﻿using HolisticApp.Data;
+using HolisticApp.Views;
+using Microsoft.Maui.Storage;
+using System.Threading.Tasks;
 
 namespace HolisticApp
 {
     public partial class App : Application
     {
-        // Statische Instanz, auf die von überall zugegriffen werden kann
-        public static UserDatabase? UserDatabase { get; private set; }
+        public static UserDatabase UserDatabase { get; private set; }
 
         public App()
         {
             InitializeComponent();
-            
-            // Verbindungszeichenfolge für MySQL
-            string connectionString = "Server=10.0.2.2;Database=holisticapp;User=root;Password=;";
-            UserDatabase = new UserDatabase(connectionString);
+
+            // Setze eine temporäre MainPage, um den Fehler zu vermeiden.
+            MainPage = new ContentPage { Content = new Label { Text = "Lade..." } };
+
+            // Initialisiere die Datenbank (Passe den ConnectionString entsprechend an)
+            UserDatabase = new UserDatabase("Server=10.0.2.2;Database=holisticapp;User=root;Password=;");
+
+            // Starte die asynchrone Initialisierung
+            InitializeAsync();
         }
-        
-        // Überschreibe CreateWindow, um deine Startseite zu definieren
-        protected override Window CreateWindow(IActivationState activationState)
+
+        private async void InitializeAsync()
         {
-            // Hier wird eine NavigationPage erzeugt, die als Root-Page dient.
-            return new Window(new NavigationPage(new Views.LoginPage()));
+            var userId = Preferences.Get("LoggedInUserId", 0);
+            if (userId > 0)
+            {
+                var user = await UserDatabase.GetUserAsync(userId);
+                bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                MainPage = new NavigationPage(anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user));
+            }
+            else
+            {
+                MainPage = new NavigationPage(new LoginPage());
+            }
         }
     }
 }

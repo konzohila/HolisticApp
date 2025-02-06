@@ -11,8 +11,10 @@ namespace HolisticApp.Models
         
         public string? Email { get; set; }
         
-        // In diesem Beispiel speichern wir das Passwort unverschlüsselt.
-        // In der Praxis sollte hier ein gehashter Wert stehen.
+        // Hier steht im Beispiel unverschlüsselt das Passwort.
         public string? PasswordHash { get; set; }
+        
+        // Neue Eigenschaft für die Anamnese (z. B. aktuelle Beschwerden)
+        public string? CurrentComplaint { get; set; }
     }
 }
