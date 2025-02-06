@@ -11,7 +11,7 @@ namespace HolisticApp.Views
         {
             InitializeComponent();
         }
-
+        
         async void OnLoginClicked(object sender, EventArgs e)
         {
             var email = EmailEntry.Text;
@@ -31,7 +31,7 @@ namespace HolisticApp.Views
 
             if (user != null)
             {
-                await DisplayAlert("Erfolg", "Login erfolgreich.", "OK");
+                // await DisplayAlert("Erfolg", "Login erfolgreich.", "OK");
                 // Navigation zur neuen Anamnese-View mit Übergabe des eingeloggten Benutzers
                 await Navigation.PushAsync(new AnamnesisPage(user));
             }

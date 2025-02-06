@@ -120,7 +120,5 @@ namespace HolisticApp.Data
                 return await command.ExecuteNonQueryAsync();
             }
         }
-        
-        
     }
 }
