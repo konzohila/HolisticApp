@@ -33,8 +33,13 @@ namespace HolisticApp.Views
         
         private async void OnUserToolbarItemClicked(object sender, EventArgs e)
         {
-            string fullName = _currentUser?.Username ?? "Unbekannt";
-            await Navigation.PushAsync(new UserMenuPage(fullName)); 
+            await Navigation.PushAsync(new UserMenuPage(_currentUser));
         }
+        
+        private async void OnAnamnesisClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new AnamnesisPage(_currentUser)); // Nutzer übergeben
+        }
+
     }
 }

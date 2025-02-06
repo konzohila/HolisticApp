@@ -4,34 +4,47 @@
              Title="Anamnese">
     <ContentPage.Content>
         <StackLayout Padding="20" Spacing="20">
-      
-            <!-- Begrüßungstext -->
-            <Label Text="Herzlich Willkommen. Bitte geben Sie einige Informationen zu Ihrem Gesundheitszustand."
-                   FontSize="Medium" 
-                   HorizontalOptions="Center" />
+            
+            <!-- Alter -->
+            <Label Text="Alter (Jahre):" />
+            <Entry x:Name="AgeEntry" Placeholder="Alter eingeben" Keyboard="Numeric" />
 
-            <!-- Frage nach aktuellen Beschwerden -->
-            <Label Text="Haben Sie aktuelle Beschwerden?" FontSize="Small" />
+            <!-- Geschlecht -->
+            <Label Text="Geschlecht:" />
+            <Picker x:Name="GenderPicker" Title="Wähle dein Geschlecht">
+                <Picker.Items>
+                    <x:String>Männlich</x:String>
+                    <x:String>Weiblich</x:String>
+                    <x:String>Divers</x:String>
+                </Picker.Items>
+            </Picker>
+
+            <!-- Größe -->
+            <Label Text="Größe (cm):" />
+            <Entry x:Name="HeightEntry" Placeholder="Größe eingeben" Keyboard="Numeric" />
+
+            <!-- Gewicht -->
+            <Label Text="Gewicht (kg):" />
+            <Entry x:Name="WeightEntry" Placeholder="Gewicht eingeben" Keyboard="Numeric" />
+
+            <!-- Beschwerde -->
+            <Label Text="Haben Sie aktuelle Beschwerden?" />
             <Switch x:Name="complaintSwitch" Toggled="OnComplaintToggled" />
 
-            <!-- Label und Picker für Beschwerden -->
             <Label x:Name="complaintLabel" Text="Bitte wählen Sie Ihre Beschwerden:" IsVisible="False" />
-            <Picker x:Name="complaintPicker" Title="Wählen Sie eine Beschwerde aus" IsVisible="False">
+            <Picker x:Name="complaintPicker" Title="Wähle eine Beschwerde" IsVisible="False">
                 <Picker.Items>
                     <x:String>Verdauungsbeschwerden</x:String>
                     <x:String>Kopfschmerzen</x:String>
                     <x:String>Rückenschmerzen</x:String>
-                    <x:String>Müdigkeit</x:String>
                 </Picker.Items>
             </Picker>
 
-            <!-- Stärke der Beschwerden -->
             <Label x:Name="severityLabel" Text="Stärke der Beschwerden: 1" IsVisible="False" />
             <Slider x:Name="severitySlider" Minimum="1" Maximum="10" Value="1"
-                    IsVisible="False" 
-                    ValueChanged="OnSeverityChanged" />
+                    IsVisible="False" ValueChanged="OnSeverityChanged" />
 
-            <!-- Button zum Speichern -->
+            <!-- Speichern-Button -->
             <Button Text="Speichern" Clicked="OnSaveClicked" />
 
         </StackLayout>

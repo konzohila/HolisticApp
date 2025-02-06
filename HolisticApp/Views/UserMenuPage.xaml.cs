@@ -1,19 +1,20 @@
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using HolisticApp.Models;
 
 namespace HolisticApp.Views
 {
     public partial class UserMenuPage : ContentPage
     {
-        private string _fullName;
+        private User _currentUser;
 
-        public UserMenuPage(string fullName)
+        public UserMenuPage(User user)
         {
             InitializeComponent();
-            _fullName = fullName;
-            FullNameLabel.Text = fullName; // Benutzername anzeigen
+            _currentUser = user;
+            FullNameLabel.Text = _currentUser.Username; // Setzt den Benutzernamen in der UI
         }
-
+        
         private async void OnSettingsClicked(object sender, EventArgs e)
         {
             // Beispiel: Navigation zur Einstellungen-Seite (kann später angepasst werden)
@@ -28,6 +29,22 @@ namespace HolisticApp.Views
 
             // Navigiere zurück zur Login-Seite
             Application.Current.MainPage = new NavigationPage(new LoginPage());
+        }
+        
+        private async void OnInfoClicked(object sender, EventArgs e)
+        {
+            string complaintInfo = string.IsNullOrEmpty(_currentUser.CurrentComplaint) || _currentUser.CurrentComplaint == "Keine Beschwerden"
+                ? "Aktuell keine Beschwerden gespeichert."
+                : $"Aktuelle Beschwerde: {_currentUser.CurrentComplaint}";
+
+            string ageInfo = _currentUser.Age.HasValue ? $"Alter: {_currentUser.Age} Jahre" : "Alter: Nicht angegeben";
+            string genderInfo = !string.IsNullOrEmpty(_currentUser.Gender) ? $"Geschlecht: {_currentUser.Gender}" : "Geschlecht: Nicht angegeben";
+            string heightInfo = _currentUser.Height.HasValue ? $"Größe: {_currentUser.Height} cm" : "Größe: Nicht angegeben";
+            string weightInfo = _currentUser.Weight.HasValue ? $"Gewicht: {_currentUser.Weight} kg" : "Gewicht: Nicht angegeben";
+
+            string infoText = $"{ageInfo}\n{genderInfo}\n{heightInfo}\n{weightInfo}\n\n{complaintInfo}";
+
+            await DisplayAlert("Benutzer-Info", infoText, "OK");
         }
     }
 }
