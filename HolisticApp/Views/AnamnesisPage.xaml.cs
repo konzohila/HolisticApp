@@ -25,7 +25,6 @@ namespace HolisticApp.Views
         // Speichern-Button
         private async void OnSaveClicked(object sender, EventArgs e)
         {
-            // Wenn der Switch auf "Ja" steht, muss eine Option gewählt werden
             if (complaintSwitch.IsToggled)
             {
                 if (complaintPicker.SelectedIndex == -1)
@@ -33,23 +32,23 @@ namespace HolisticApp.Views
                     await DisplayAlert("Fehler", "Bitte wählen Sie eine Beschwerde aus.", "OK");
                     return;
                 }
-                // Ausgewählte Beschwerde holen
                 string selectedComplaint = complaintPicker.Items[complaintPicker.SelectedIndex];
                 _currentUser.CurrentComplaint = selectedComplaint;
             }
             else
             {
-                // Falls keine Beschwerden vorliegen
                 _currentUser.CurrentComplaint = "Keine Beschwerden";
             }
 
-            // Benutzer in der Datenbank aktualisieren (hierbei wird SaveUserAsync für ein Update aufgerufen)
             int result = await App.UserDatabase.SaveUserAsync(_currentUser);
             if (result > 0)
             {
+                // Setze Flag, dass die Anamnese abgeschlossen ist
+                Preferences.Set("AnamnesisCompleted", true);
+
                 await DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
-                // Hier kannst du optional zur nächsten Seite navigieren
-                // await Navigation.PushAsync(new NextPage());
+                // Navigiere zur HomePage
+                await Navigation.PushAsync(new HomePage(_currentUser));
             }
             else
             {
