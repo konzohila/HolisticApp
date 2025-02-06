@@ -6,23 +6,29 @@ namespace HolisticApp.Views
     public partial class AnamnesisPage : ContentPage
     {
         private User _currentUser;
+        private int _selectedSeverity = 1; // Standardwert für die Stärke der Beschwerden
 
-        // Übergib den aktuell angemeldeten User über den Konstruktor
         public AnamnesisPage(User user)
         {
             InitializeComponent();
             _currentUser = user;
         }
 
-        // Wird aufgerufen, wenn der Switch umgeschaltet wird
         private void OnComplaintToggled(object sender, ToggledEventArgs e)
         {
             bool hasComplaint = e.Value;
             complaintLabel.IsVisible = hasComplaint;
             complaintPicker.IsVisible = hasComplaint;
+            severityLabel.IsVisible = hasComplaint;
+            severitySlider.IsVisible = hasComplaint;
         }
 
-        // Speichern-Button
+        private void OnSeverityChanged(object sender, ValueChangedEventArgs e)
+        {
+            _selectedSeverity = (int)e.NewValue;
+            severityLabel.Text = $"Stärke der Beschwerden: {_selectedSeverity}";
+        }
+
         private async void OnSaveClicked(object sender, EventArgs e)
         {
             if (complaintSwitch.IsToggled)
@@ -33,7 +39,7 @@ namespace HolisticApp.Views
                     return;
                 }
                 string selectedComplaint = complaintPicker.Items[complaintPicker.SelectedIndex];
-                _currentUser.CurrentComplaint = selectedComplaint;
+                _currentUser.CurrentComplaint = $"{selectedComplaint} (Stärke: {_selectedSeverity}/10)";
             }
             else
             {
@@ -43,10 +49,7 @@ namespace HolisticApp.Views
             int result = await App.UserDatabase.SaveUserAsync(_currentUser);
             if (result > 0)
             {
-                // Setze Flag, dass die Anamnese abgeschlossen ist
-                Preferences.Set($"AnamnesisCompleted_{_currentUser.Id}", true);
                 await DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
-                // Navigiere zur HomePage
                 await Navigation.PushAsync(new HomePage(_currentUser));
             }
             else
