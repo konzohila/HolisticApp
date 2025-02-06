@@ -2,14 +2,17 @@
 <ContentPage 
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
     x:Class="HolisticApp.Views.UserMenuPage"
-    Title="Benutzermenü">
-    <StackLayout Padding="20" Spacing="15" BackgroundColor="White">
-        <!-- Benutzername anzeigen -->
-        <Label x:Name="FullNameLabel" FontAttributes="Bold" FontSize="Large" />
-        <!-- Einstellungen-Button -->
-        <Button Text="Einstellungen" Clicked="OnSettingsClicked" />
-        <!-- Logout-Button -->
-        <Button Text="Logout" Clicked="OnLogoutClicked" />
+    Title="Benutzermenü"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
+    <StackLayout Padding="20" Spacing="15">
+        <Label Text="{Binding CurrentUser.Username}" 
+               FontAttributes="Bold" 
+               FontSize="Large" />
+        <Button Text="Info" Command="{Binding ShowInfoCommand}" />
+        <Button Text="Einstellungen" Command="{Binding OpenSettingsCommand}" />
+        <Button Text="Logout" Command="{Binding LogoutCommand}" />
     </StackLayout>
 </ContentPage>
