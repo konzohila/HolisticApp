@@ -1,17 +1,23 @@
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="HolisticApp.Views.HomePage"
-             Title="Übersicht">
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.HomePage"
+    Title="Übersicht"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
     <ContentPage.ToolbarItems>
-        <ToolbarItem x:Name="UserToolbarItem" Text="??" Clicked="OnUserToolbarItemClicked" Priority="0" Order="Primary" />
+        <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
     </ContentPage.ToolbarItems>
     
     <ContentPage.Content>
         <StackLayout Padding="20" Spacing="20">
-            <!-- Anamnese-Button -->
-            <Button Text="Anamnese" Clicked="OnAnamnesisClicked" />
-
-            <!-- Weitere Buttons -->
+            <Button Text="Anamnese" 
+                    Command="{Binding OpenAnamnesisCommand}" 
+                    HeightRequest="50" 
+                    FontSize="18" 
+                    CornerRadius="10"/>
             <Button Text="Befunde hochladen" />
             <Button Text="Chat" />
         </StackLayout>

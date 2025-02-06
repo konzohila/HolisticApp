@@ -1,5 +1,3 @@
-using SQLite;
-
 namespace HolisticApp.Models
 {
     public class User

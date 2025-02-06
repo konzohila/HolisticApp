@@ -1,52 +1,50 @@
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="HolisticApp.Views.AnamnesisPage"
-             Title="Anamnese">
-    <ContentPage.Content>
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.AnamnesisPage"
+    Title="Anamnese"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
+    <ScrollView>
         <StackLayout Padding="20" Spacing="20">
-            
             <!-- Alter -->
             <Label Text="Alter (Jahre):" />
-            <Entry x:Name="AgeEntry" Placeholder="Alter eingeben" Keyboard="Numeric" />
-
+            <Entry Text="{Binding Age}" Placeholder="Alter eingeben" Keyboard="Numeric" />
+    
             <!-- Geschlecht -->
             <Label Text="Geschlecht:" />
-            <Picker x:Name="GenderPicker" Title="Wähle dein Geschlecht">
-                <Picker.Items>
-                    <x:String>Männlich</x:String>
-                    <x:String>Weiblich</x:String>
-                    <x:String>Divers</x:String>
-                </Picker.Items>
-            </Picker>
-
+            <Picker ItemsSource="{Binding GenderOptions}" 
+                    SelectedItem="{Binding SelectedGender}" 
+                    Title="Wähle dein Geschlecht" />
+    
             <!-- Größe -->
             <Label Text="Größe (cm):" />
-            <Entry x:Name="HeightEntry" Placeholder="Größe eingeben" Keyboard="Numeric" />
-
+            <Entry Text="{Binding Height}" Placeholder="Größe eingeben" Keyboard="Numeric" />
+    
             <!-- Gewicht -->
             <Label Text="Gewicht (kg):" />
-            <Entry x:Name="WeightEntry" Placeholder="Gewicht eingeben" Keyboard="Numeric" />
-
-            <!-- Beschwerde -->
-            <Label Text="Haben Sie aktuelle Beschwerden?" />
-            <Switch x:Name="complaintSwitch" Toggled="OnComplaintToggled" />
-
-            <Label x:Name="complaintLabel" Text="Bitte wählen Sie Ihre Beschwerden:" IsVisible="False" />
-            <Picker x:Name="complaintPicker" Title="Wähle eine Beschwerde" IsVisible="False">
-                <Picker.Items>
-                    <x:String>Verdauungsbeschwerden</x:String>
-                    <x:String>Kopfschmerzen</x:String>
-                    <x:String>Rückenschmerzen</x:String>
-                </Picker.Items>
-            </Picker>
-
-            <Label x:Name="severityLabel" Text="Stärke der Beschwerden: 1" IsVisible="False" />
-            <Slider x:Name="severitySlider" Minimum="1" Maximum="10" Value="1"
-                    IsVisible="False" ValueChanged="OnSeverityChanged" />
-
-            <!-- Speichern-Button -->
-            <Button Text="Speichern" Clicked="OnSaveClicked" />
-
+            <Entry Text="{Binding Weight}" Placeholder="Gewicht eingeben" Keyboard="Numeric" />
+    
+            <!-- Beschwerden -->
+            <StackLayout Orientation="Horizontal" VerticalOptions="Center">
+                <Label Text="Aktuelle Beschwerden:" VerticalOptions="Center"/>
+                <Switch IsToggled="{Binding HasComplaint}" VerticalOptions="Center" Margin="10,0"/>
+            </StackLayout>
+    
+            <Label Text="Beschwerde auswählen:" IsVisible="{Binding HasComplaint}" />
+            <Picker ItemsSource="{Binding ComplaintOptions}" 
+                    SelectedItem="{Binding SelectedComplaint}" 
+                    Title="Wähle eine Beschwerde" IsVisible="{Binding HasComplaint}" />
+    
+            <Label Text="{Binding Severity, StringFormat=Stärke der Beschwerden: {0}}" 
+                   IsVisible="{Binding HasComplaint}" />
+            <Stepper Minimum="1" Maximum="10" Increment="1" 
+                     Value="{Binding Severity}" 
+                     IsVisible="{Binding HasComplaint}" />
+    
+            <Button Text="Speichern" Command="{Binding SaveCommand}" />
         </StackLayout>
-    </ContentPage.Content>
+    </ScrollView>
 </ContentPage>
