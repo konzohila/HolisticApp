@@ -48,10 +48,12 @@ namespace HolisticApp.Data
         public async Task<List<User>> GetUsersAsync()
         {
             var users = new List<User>();
+
             using (var connection = await GetConnectionAsync())
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM Users";
+
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
@@ -66,7 +68,12 @@ namespace HolisticApp.Data
                             Age = GetNullableInt(reader, "Age"),
                             Gender = GetString(reader, "Gender", "Nicht angegeben"),
                             Height = GetNullableDecimal(reader, "Height"),
-                            Weight = GetNullableDecimal(reader, "Weight")
+                            Weight = GetNullableDecimal(reader, "Weight"),
+                            // Hier wird die neue Spalte gemappt:
+                            MasterAccountId = GetNullableInt(reader, "MasterAccountId"),
+                            Role = Enum.TryParse(GetString(reader, "Role", "Patient"), out UserRole parsedRole)
+                                ? parsedRole
+                                : UserRole.Patient
                         });
                     }
                 }
@@ -74,15 +81,18 @@ namespace HolisticApp.Data
             return users;
         }
 
+
+
         public async Task<User> GetUserAsync(int id)
         {
             using (var connection = await GetConnectionAsync())
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = @"
-                    SELECT Id, Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight 
-                    FROM Users WHERE Id = @id";
+            SELECT Id, Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, MasterAccountId, Role 
+            FROM Users WHERE Id = @id";
                 command.Parameters.AddWithValue("@id", id);
+
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     if (await reader.ReadAsync())
@@ -97,7 +107,12 @@ namespace HolisticApp.Data
                             Age = GetNullableInt(reader, "Age"),
                             Gender = GetString(reader, "Gender", "Nicht angegeben"),
                             Height = GetNullableDecimal(reader, "Height"),
-                            Weight = GetNullableDecimal(reader, "Weight")
+                            Weight = GetNullableDecimal(reader, "Weight"),
+                            // Mapping für MasterAccountId:
+                            MasterAccountId = GetNullableInt(reader, "MasterAccountId"),
+                            Role = Enum.TryParse(GetString(reader, "Role", "Patient"), out UserRole parsedRole)
+                                ? parsedRole
+                                : UserRole.Patient
                         };
                     }
                 }
@@ -113,24 +128,26 @@ namespace HolisticApp.Data
                 if (user.Id != 0)
                 {
                     command.CommandText = @"
-                        UPDATE Users
-                        SET Username = @username, 
-                            Email = @email, 
-                            PasswordHash = @passwordHash,
-                            CurrentComplaint = @currentComplaint,
-                            Age = @age,
-                            Gender = @gender,
-                            Height = @height,
-                            Weight = @weight
-                        WHERE Id = @id";
+                UPDATE Users
+                SET Username = @username, 
+                    Email = @email, 
+                    PasswordHash = @passwordHash,
+                    CurrentComplaint = @currentComplaint,
+                    Age = @age,
+                    Gender = @gender,
+                    Height = @height,
+                    Weight = @weight,
+                    Role = @role
+                WHERE Id = @id";
                     command.Parameters.AddWithValue("@id", user.Id);
                 }
                 else
                 {
                     command.CommandText = @"
-                        INSERT INTO Users (Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight)
-                        VALUES (@username, @email, @passwordHash, @currentComplaint, @age, @gender, @height, @weight)";
+                INSERT INTO Users (Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, Role)
+                VALUES (@username, @email, @passwordHash, @currentComplaint, @age, @gender, @height, @weight, @role)";
                 }
+
                 command.Parameters.AddWithValue("@username", user.Username);
                 command.Parameters.AddWithValue("@email", user.Email);
                 command.Parameters.AddWithValue("@passwordHash", user.PasswordHash);
@@ -139,9 +156,12 @@ namespace HolisticApp.Data
                 command.Parameters.AddWithValue("@gender", user.Gender ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@height", user.Height ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@weight", user.Weight ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@role", user.Role.ToString());
+
                 return await command.ExecuteNonQueryAsync();
             }
         }
+
 
         public async Task<int> DeleteUserAsync(int id)
         {

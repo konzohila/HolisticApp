@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="HolisticApp.Views.PatientDetailPage"
+    Title="Patient Details"
+    BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="10">
+            <Label Text="Patient Details" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center"/>
+            <Label Text="{Binding Username}" FontSize="20" />
+            <Label Text="{Binding Email}" FontSize="16" />
+            <Label Text="{Binding Age, StringFormat='Age: {0}'}" />
+            <Label Text="{Binding Gender, StringFormat='Gender: {0}'}" />
+            <Label Text="{Binding Height, StringFormat='Height: {0} cm'}" />
+            <Label Text="{Binding Weight, StringFormat='Weight: {0} kg'}" />
+            <Label Text="{Binding CurrentComplaint, StringFormat='Complaint: {0}'}" />
+            <!-- Füge bei Bedarf weitere Details hinzu -->
+        </StackLayout>
+    </ScrollView>
+</ContentPage>

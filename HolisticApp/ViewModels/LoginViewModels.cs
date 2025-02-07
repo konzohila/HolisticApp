@@ -34,7 +34,7 @@ namespace HolisticApp.ViewModels
                 await App.Current.MainPage.DisplayAlert("Fehler", "Bitte Email und Passwort eingeben.", "OK");
                 return;
             }
-
+            
             var users = await _userRepository.GetUsersAsync();
             var user = users.FirstOrDefault(u =>
                 u.Email.Equals(Email, System.StringComparison.OrdinalIgnoreCase) &&
@@ -43,15 +43,18 @@ namespace HolisticApp.ViewModels
             if (user != null)
             {
                 Preferences.Set("LoggedInUserId", user.Id);
-                bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
-                if (!anamnesisCompleted)
-                    await _navigation.PushAsync(new AnamnesisPage(user));
+                if (user.Role == UserRole.Admin)
+                    await _navigation.PushAsync(new AdminDashboardPage(user));
+                else if (user.Role == UserRole.Doctor)
+                    await _navigation.PushAsync(new DoctorDashboardPage(user));
                 else
-                    await _navigation.PushAsync(new HomePage(user));
-            }
-            else
-            {
-                await App.Current.MainPage.DisplayAlert("Fehler", "Ungültige Anmeldedaten.", "OK");
+                {
+                    bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                    if (!anamnesisCompleted)
+                        await _navigation.PushAsync(new AnamnesisPage(user));
+                    else
+                        await _navigation.PushAsync(new HomePage(user));
+                }
             }
         }
 

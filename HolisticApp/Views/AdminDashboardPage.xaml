@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.AdminDashboardPage"
+    Title="Admin Dashboard"
+    BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="20">
+            <Button Text="Doktor erstellen" Command="{Binding CreateDoctorCommand}" />
+            <Button Text="Lade Doktoren" Command="{Binding LoadDoctorsCommand}" />
+            <Label Text="Doktoren:" FontAttributes="Bold" />
+            <ListView ItemsSource="{Binding Doctors}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <ViewCell>
+                            <StackLayout Padding="10">
+                                <Label Text="{Binding Username}" FontAttributes="Bold" />
+                                <Label Text="{Binding Email}" />
+                            </StackLayout>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
