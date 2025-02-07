@@ -1,4 +1,5 @@
 ﻿using HolisticApp.Data.Interfaces;
+using HolisticApp.Models; // Für UserRole
 using HolisticApp.Views;
 using Microsoft.Maui.Storage;
 
@@ -23,13 +24,24 @@ namespace HolisticApp
             if (userId > 0)
             {
                 var user = await userRepository.GetUserAsync(userId);
-                bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
-                MainPage = new NavigationPage(anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user));
+                if (user.Role == UserRole.Doctor)
+                {
+                    MainPage = new NavigationPage(new DoctorDashboardPage(user));
+                }
+                else if (user.Role == UserRole.Admin)
+                {
+                    MainPage = new NavigationPage(new AdminDashboardPage(user));
+                }
+                else // Patient
+                {
+                    bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                    MainPage = new NavigationPage(anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user));
+                }
             }
             else
             {
                 MainPage = new NavigationPage(new LoginPage());
             }
         }
-    }
+    }     
 }
