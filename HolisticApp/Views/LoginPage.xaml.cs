@@ -8,10 +8,23 @@ namespace HolisticApp.Views
         public LoginPage()
         {
             InitializeComponent();
-            // DI-Zugriff über den MauiContext
-            var userRepository = (Application.Current as App)
-                .Handler.MauiContext.Services.GetService(typeof(IUserRepository)) as IUserRepository;
-            BindingContext = new LoginViewModel(userRepository, Navigation);
+            // Hier NICHT auf den DI-Container zugreifen, da Handler noch nicht initialisiert ist.
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+        
+            // Prüfen, ob bereits ein BindingContext gesetzt wurde
+            if (BindingContext == null)
+            {
+                // Jetzt ist der Handler verfügbar:
+                var userRepository = (Application.Current as App)
+                    .Handler.MauiContext.Services.GetService(typeof(IUserRepository)) as IUserRepository;
+            
+                // Setze den BindingContext mit dem LoginViewModel
+                BindingContext = new LoginViewModel(userRepository, Navigation);
+            }
         }
     }
 }
