@@ -157,8 +157,15 @@ namespace HolisticApp.Data
                 command.Parameters.AddWithValue("@height", user.Height ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@weight", user.Weight ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@role", user.Role.ToString());
-
-                return await command.ExecuteNonQueryAsync();
+                try
+                {
+                    return await command.ExecuteNonQueryAsync();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
             }
         }
 

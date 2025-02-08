@@ -19,7 +19,7 @@ namespace HolisticApp
                 });
 
             // ConnectionString – ggf. aus Konfiguration lesen
-            string connectionString = "Server=10.0.2.2;Database=holisticapp;User=root;Password=;";
+            string connectionString = "Server=database-1.cjs4qmoaa9sv.eu-central-1.rds.amazonaws.com;Database=holisticapp;User=admin;Password=pwpwpwpw;";
             builder.Services.AddSingleton<IUserRepository>(new UserRepository(connectionString));
 
             // Registrierung der ViewModels
