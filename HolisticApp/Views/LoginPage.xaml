@@ -8,15 +8,75 @@
     BackgroundColor="{StaticResource BackgroundColor}">
     
     <ScrollView>
-        <StackLayout Padding="30" Spacing="20" VerticalOptions="Center">
-            <Label Text="Willkommen zurück!" 
-                   FontSize="24" 
-                   HorizontalOptions="Center" 
-                   TextColor="{StaticResource PrimaryColor}" />
-            <Entry Text="{Binding Email}" Placeholder="Email" Keyboard="Email" />
-            <Entry Text="{Binding Password}" Placeholder="Passwort" IsPassword="True" />
-            <Button Text="Login" Command="{Binding LoginCommand}" />
-            <Button Text="Registrieren" Command="{Binding RegisterCommand}" BackgroundColor="{StaticResource SecondaryColor}" />
-        </StackLayout>
+        <VerticalStackLayout
+            Padding="30"
+            Spacing="20"
+            HorizontalOptions="Center"
+            VerticalOptions="Center">
+            
+            <!--~1~ Optionales Logo / Icon @1@
+            <Image Source="heart.png"
+                   WidthRequest="60"
+                   HeightRequest="60"
+                   HorizontalOptions="Center"/>-->
+            
+            <!-- Überschrift -->
+            <Label Text="Continuum Health"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource PrimaryColor}"
+                   Margin="0,0,0,10"/>
+
+            <!-- Email-Label + abgerundetes Textfeld -->
+            <Label Text="Email"
+                   TextColor="{StaticResource PrimaryColor}"
+                   FontAttributes="Bold"/>
+            <Border StrokeShape="RoundRectangle 8"
+                    StrokeThickness="0"
+                    BackgroundColor="#F5F5F5"
+                    Padding="10"
+                    Margin="0,0,0,10">
+                <Entry Placeholder="Email"
+                       Text="{Binding Email}"
+                       TextColor="Black"/>
+            </Border>
+
+            <!-- Passwort-Label + abgerundetes Textfeld -->
+            <Label Text="Passwort"
+                   TextColor="{StaticResource PrimaryColor}"
+                   FontAttributes="Bold"/>
+            <Border StrokeShape="RoundRectangle 8"
+                    StrokeThickness="0"
+                    BackgroundColor="#F5F5F5"
+                    Padding="10"
+                    Margin="0,0,0,10">
+                <Entry Placeholder="Passwort"
+                       Text="{Binding Password}"
+                       IsPassword="True"
+                       TextColor="Black"/>
+            </Border>
+
+            <!-- Login-Button -->
+            <Button Text="Login"
+                    Command="{Binding LoginCommand}"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource SecondaryColor}"
+                    CornerRadius="6"
+                    Margin="0,10,0,0"
+                    HeightRequest="50"/>
+
+            <!-- Registrieren-Button (mit Rahmen) -->
+            <Button Text="Registrieren"
+                    Command="{Binding RegisterCommand}"
+                    TextColor="{StaticResource SecondaryColor}"
+                    BackgroundColor="Transparent"
+                    BorderColor="{StaticResource SecondaryColor}"
+                    BorderWidth="1"
+                    CornerRadius="6"
+                    HeightRequest="50"
+                    Margin="0,10,0,0"/>
+        </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
