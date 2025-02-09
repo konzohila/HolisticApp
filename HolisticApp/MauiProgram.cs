@@ -1,35 +1,40 @@
-﻿using HolisticApp;
+﻿using System.IO;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Maui.Storage;
+using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using HolisticApp.Services;
 using HolisticApp.Data;
 using HolisticApp.Data.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
 
-namespace HolisticApp
+namespace HolisticApp;
+
+public static class MauiProgram
 {
-    public static class MauiProgram
+    public static MauiApp CreateMauiApp()  
     {
-        public static MauiApp CreateMauiApp()
-        {
-            var builder = MauiApp.CreateBuilder();
-            builder
-                .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                });
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+            .ConfigureFonts(fonts =>
+            {
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+            });
 
-            // ConnectionString – ggf. aus Konfiguration lesen
-            string connectionString = "Server=database-1.cjs4qmoaa9sv.eu-central-1.rds.amazonaws.com;Database=holisticapp;User=admin;Password=pwpwpwpw;";
-            builder.Services.AddSingleton<IUserRepository>(new UserRepository(connectionString));
 
-            // Registrierung der ViewModels
-            builder.Services.AddTransient<ViewModels.LoginViewModel>();
-            builder.Services.AddTransient<ViewModels.RegistrationViewModel>();
-            builder.Services.AddTransient<ViewModels.HomeViewModel>();
-            builder.Services.AddTransient<ViewModels.AnamnesisViewModel>();
-            builder.Services.AddTransient<ViewModels.UserMenuViewModel>();
+        var awsSecretsService = new AwsSecretsService();
+        JObject secrets = Task.Run(async () => await awsSecretsService.GetSecretAsync("prod/AppBeta/Mysql")).Result;
+        
+        string username = secrets["username"]?.ToString();
+        string password = secrets["password"]?.ToString();
+        string host = secrets["host"]?.ToString();
+        int port = secrets["port"]?.ToObject<int>() ?? 3306;
 
-            return builder.Build();
-        }
+        string connectionString = $"Server={host};Port={port};User Id={username};Password={password};Database=database-1";
+
+        // 🔹 Korrekte DI-Registrierung mit Factory-Methode
+        builder.Services.AddSingleton<IUserRepository>(provider => new UserRepository(connectionString));
+
+        return builder.Build();
     }
 }
