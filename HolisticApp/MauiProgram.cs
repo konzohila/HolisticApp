@@ -1,9 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.Maui.Storage;
 using Serilog;
-using Serilog.Events;
-using System;
-using System.IO;
 
 namespace HolisticApp
 {
@@ -14,7 +10,7 @@ namespace HolisticApp
             try
             {
                 // Stelle sicher, dass Android.App.Application.Context nicht null ist, bevor darauf zugegriffen wird
-                var externalFilesDir = Android.App.Application.Context?.GetExternalFilesDir(null)?.AbsolutePath;
+                var externalFilesDir = Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath;
                 if (string.IsNullOrEmpty(externalFilesDir))
                 {
                     throw new InvalidOperationException("ExternalFilesDir konnte nicht ermittelt werden.");
@@ -62,22 +58,22 @@ namespace HolisticApp
             }
             else
             {
-                builder.Services.AddSingleton<HolisticApp.Data.Interfaces.IUserRepository>(sp =>
-                    new HolisticApp.Data.UserRepository(connectionString,
-                        sp.GetRequiredService<ILogger<HolisticApp.Data.UserRepository>>()));
+                builder.Services.AddSingleton<Data.Interfaces.IUserRepository>(sp =>
+                    new Data.UserRepository(connectionString,
+                        sp.GetRequiredService<ILogger<Data.UserRepository>>()));
 
-                builder.Services.AddSingleton<HolisticApp.Data.Interfaces.IInvitationRepository>(sp =>
-                    new HolisticApp.Data.InvitationRepository(connectionString,
-                        sp.GetRequiredService<ILogger<HolisticApp.Data.InvitationRepository>>()));
+                builder.Services.AddSingleton<Data.Interfaces.IInvitationRepository>(sp =>
+                    new Data.InvitationRepository(connectionString,
+                        sp.GetRequiredService<ILogger<Data.InvitationRepository>>()));
             }
 
-            builder.Services.AddTransient<HolisticApp.ViewModels.LoginViewModel>();
-            builder.Services.AddTransient<HolisticApp.ViewModels.RegistrationViewModel>();
-            builder.Services.AddTransient<HolisticApp.ViewModels.HomeViewModel>();
-            builder.Services.AddTransient<HolisticApp.ViewModels.AnamnesisViewModel>();
-            builder.Services.AddTransient<HolisticApp.ViewModels.UserMenuViewModel>();
-            builder.Services.AddTransient<HolisticApp.ViewModels.DoctorDashboardViewModel>();
-            builder.Services.AddTransient<HolisticApp.ViewModels.DoctorRegistrationViewModel>();
+            builder.Services.AddTransient<ViewModels.LoginViewModel>();
+            builder.Services.AddTransient<ViewModels.RegistrationViewModel>();
+            builder.Services.AddTransient<ViewModels.HomeViewModel>();
+            builder.Services.AddTransient<ViewModels.AnamnesisViewModel>();
+            builder.Services.AddTransient<ViewModels.UserMenuViewModel>();
+            builder.Services.AddTransient<ViewModels.DoctorDashboardViewModel>();
+            builder.Services.AddTransient<ViewModels.DoctorRegistrationViewModel>();
 
             return builder.Build();
         }

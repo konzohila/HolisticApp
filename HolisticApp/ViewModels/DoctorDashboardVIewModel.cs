@@ -1,13 +1,9 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
-using Microsoft.Maui.Controls;
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HolisticApp.ViewModels
 {
@@ -17,7 +13,7 @@ namespace HolisticApp.ViewModels
         private readonly IInvitationRepository _invitationRepository;
         private readonly INavigation _navigation;
 
-        public User CurrentUser { get; } // Der aktuell angemeldete Doktor
+        private User CurrentUser { get; } // Der aktuell angemeldete Doktor
 
         public DoctorDashboardViewModel(User currentUser,
                                         IUserRepository userRepository,
@@ -28,15 +24,15 @@ namespace HolisticApp.ViewModels
             _userRepository = userRepository;
             _invitationRepository = invitationRepository;
             _navigation = navigation;
-            Patients = new ObservableCollection<User>();
+            Patients = [];
             GeneratedInvitationLink = string.Empty; // Standardwert zugewiesen
         }
 
         [ObservableProperty]
-        private ObservableCollection<User> patients;
+        private ObservableCollection<User> _patients;
 
         [ObservableProperty]
-        private string generatedInvitationLink = string.Empty; // Initialisiert
+        private string _generatedInvitationLink = string.Empty; // Initialisiert
 
         public string UserInitials => GetInitials(CurrentUser.Username);
 
@@ -51,7 +47,7 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task GenerateInvitationAsync()
+        private async Task GenerateInvitationAsync()
         {
             var token = Guid.NewGuid().ToString();
             var invitation = new Invitation
@@ -68,7 +64,7 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task LoadPatientsAsync()
+        private async Task LoadPatientsAsync()
         {
             var allUsers = await _userRepository.GetUsersAsync();
             var patientsList = allUsers
@@ -82,7 +78,7 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task OpenPatientDetailsAsync(User patient)
+        private async Task OpenPatientDetailsAsync(User? patient)
         {
             if (patient != null)
             {
@@ -91,7 +87,7 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task OpenUserMenuAsync()
+        private async Task OpenUserMenuAsync()
         {
             await _navigation.PushAsync(new UserMenuPage(CurrentUser));
         }

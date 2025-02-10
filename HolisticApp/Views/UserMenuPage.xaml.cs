@@ -3,7 +3,7 @@ using HolisticApp.ViewModels;
 
 namespace HolisticApp.Views
 {
-    public partial class UserMenuPage : ContentPage
+    public partial class UserMenuPage
     {
         public UserMenuPage(User user)
         {

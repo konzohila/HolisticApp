@@ -6,40 +6,34 @@ using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.ViewModels
 {
-    public partial class RegistrationViewModel : ObservableObject
+    public partial class RegistrationViewModel(
+        IUserRepository userRepository,
+        IInvitationRepository invitationRepository,
+        INavigation navigation,
+        ILogger<RegistrationViewModel> logger)
+        : ObservableObject
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IInvitationRepository _invitationRepository;
-        private readonly INavigation _navigation;
-        private readonly ILogger<RegistrationViewModel> _logger;
+        private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        private readonly IInvitationRepository _invitationRepository = invitationRepository ?? throw new ArgumentNullException(nameof(invitationRepository));
+        private readonly INavigation _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
+        private readonly ILogger<RegistrationViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         [ObservableProperty]
-        private string username = string.Empty;
+        private string _username = string.Empty;
 
         [ObservableProperty]
-        private string email = string.Empty;
+        private string _email = string.Empty;
 
         [ObservableProperty]
-        private string password = string.Empty;
+        private string _password = string.Empty;
 
         [ObservableProperty]
-        private string invitationToken = string.Empty;
-
-        public RegistrationViewModel(IUserRepository userRepository,
-                                     IInvitationRepository invitationRepository,
-                                     INavigation navigation,
-                                     ILogger<RegistrationViewModel> logger)
-        {
-            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-            _invitationRepository = invitationRepository ?? throw new ArgumentNullException(nameof(invitationRepository));
-            _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private string _invitationToken = string.Empty;
 
         [RelayCommand]
-        public async Task RegisterAsync()
+        private async Task RegisterAsync()
         {
-            var currentPage = Application.Current?.Windows?.FirstOrDefault()?.Page;
+            var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
             try
             {
                 if (string.IsNullOrWhiteSpace(Username) ||

@@ -4,7 +4,7 @@ using HolisticApp.ViewModels;
 
 namespace HolisticApp.Views
 {
-    public partial class AnamnesisPage : ContentPage
+    public partial class AnamnesisPage
     {
         public AnamnesisPage(User user)
         {

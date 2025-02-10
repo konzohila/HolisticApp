@@ -1,5 +1,4 @@
 using HolisticApp.Models;
-using System.Threading.Tasks;
 
 namespace HolisticApp.Data.Interfaces
 {

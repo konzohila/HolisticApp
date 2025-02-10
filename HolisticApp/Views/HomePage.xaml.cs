@@ -1,10 +1,9 @@
 using HolisticApp.Models;
 using HolisticApp.ViewModels;
-using System.Linq;
 
 namespace HolisticApp.Views
 {
-    public partial class HomePage : ContentPage
+    public partial class HomePage
     {
         public HomePage(User user)
         {

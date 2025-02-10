@@ -1,12 +1,11 @@
-﻿using HolisticApp.Data.Interfaces;
+﻿using System.Diagnostics;
+using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
-using Microsoft.Maui.Storage;
-using System.Diagnostics;
 
 namespace HolisticApp
 {
-    public partial class App : Application
+    public partial class App
     {
         private readonly IUserRepository _userRepository;
 

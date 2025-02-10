@@ -1,11 +1,10 @@
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.ViewModels;
-using Microsoft.Maui.Controls;
 
 namespace HolisticApp.Views
 {
-    public partial class AdminDashboardPage : ContentPage
+    public partial class AdminDashboardPage
     {
         public AdminDashboardPage(User currentUser)
         {

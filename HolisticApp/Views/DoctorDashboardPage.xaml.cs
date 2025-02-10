@@ -1,12 +1,10 @@
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.ViewModels;
-using Microsoft.Maui.Controls;
-using System;
 
 namespace HolisticApp.Views
 {
-    public partial class DoctorDashboardPage : ContentPage
+    public partial class DoctorDashboardPage
     {
         public DoctorDashboardPage(User currentUser)
         {

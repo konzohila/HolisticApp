@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.Views
 {
-    public partial class LoginPage : ContentPage
+    public partial class LoginPage
     {
         public LoginPage()
         {

@@ -7,29 +7,26 @@ using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.ViewModels
 {
-    public partial class LoginViewModel : ObservableObject
+    public partial class LoginViewModel(
+        IUserRepository userRepository,
+        INavigation navigation,
+        ILogger<LoginViewModel> logger)
+        : ObservableObject
     {
-        private readonly IUserRepository _userRepository;
-        private readonly INavigation _navigation;
-        private readonly ILogger<LoginViewModel> _logger;
+        private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        private readonly INavigation _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
+        private readonly ILogger<LoginViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         [ObservableProperty]
-        private string email = string.Empty;
+        private string _email = string.Empty;
 
         [ObservableProperty]
-        private string password = string.Empty;
-
-        public LoginViewModel(IUserRepository userRepository, INavigation navigation, ILogger<LoginViewModel> logger)
-        {
-            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-            _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
+        private string _password = string.Empty;
 
         [RelayCommand]
-        public async Task LoginAsync()
+        private async Task LoginAsync()
         {
-            var currentPage = Application.Current?.Windows?.FirstOrDefault()?.Page;
+            var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
             if (currentPage == null)
             {
                 _logger.LogError("Kein gültiges Fenster gefunden. Login wird abgebrochen.");
@@ -48,7 +45,7 @@ namespace HolisticApp.ViewModels
             {
                 var users = await _userRepository.GetUsersAsync();
                 var user = users.FirstOrDefault(u =>
-                    u.Email.Equals(Email, System.StringComparison.OrdinalIgnoreCase) &&
+                    u.Email.Equals(Email, StringComparison.OrdinalIgnoreCase) &&
                     u.PasswordHash == Password);
 
                 if (user != null)
@@ -96,7 +93,7 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task RegisterAsync()
+        private async Task RegisterAsync()
         {
             try
             {
@@ -106,7 +103,7 @@ namespace HolisticApp.ViewModels
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Fehler beim Wechsel zur Registrierungsseite.");
-                var currentPage = Application.Current?.Windows?.FirstOrDefault()?.Page;
+                var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
                 if (currentPage != null)
                 {
                     await currentPage.DisplayAlert("Fehler", "Ein Fehler beim Navigieren ist aufgetreten.", "OK");

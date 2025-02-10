@@ -2,35 +2,25 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
-using Microsoft.Maui.Controls;
-using System.Threading.Tasks;
 
 namespace HolisticApp.ViewModels
 {
-    public partial class DoctorRegistrationViewModel : ObservableObject
+    public partial class DoctorRegistrationViewModel(IUserRepository userRepository, INavigation navigation)
+        : ObservableObject
     {
-        private readonly IUserRepository _userRepository;
-        private readonly INavigation _navigation;
-
-        public DoctorRegistrationViewModel(IUserRepository userRepository, INavigation navigation)
-        {
-            _userRepository = userRepository;
-            _navigation = navigation;
-        }
+        [ObservableProperty]
+        private string _username = string.Empty;
 
         [ObservableProperty]
-        private string username = string.Empty;
+        private string _email = string.Empty;
 
         [ObservableProperty]
-        private string email = string.Empty;
-
-        [ObservableProperty]
-        private string password = string.Empty;
+        private string _password = string.Empty;
 
         [RelayCommand]
-        public async Task RegisterAsync()
+        private async Task RegisterAsync()
         {
-            var currentPage = Application.Current?.Windows?[0]?.Page;
+            var currentPage = Application.Current?.Windows[0].Page;
             if (string.IsNullOrWhiteSpace(Username) ||
                 string.IsNullOrWhiteSpace(Email) ||
                 string.IsNullOrWhiteSpace(Password))
@@ -49,12 +39,12 @@ namespace HolisticApp.ViewModels
                 MasterAccountId = null
             };
 
-            int result = await _userRepository.SaveUserAsync(doctor);
+            int result = await userRepository.SaveUserAsync(doctor);
             if (result > 0)
             {
                 if (currentPage != null)
                     await currentPage.DisplayAlert("Erfolg", "Doktor erfolgreich registriert.", "OK");
-                await _navigation.PopAsync();
+                await navigation.PopAsync();
             }
             else
             {

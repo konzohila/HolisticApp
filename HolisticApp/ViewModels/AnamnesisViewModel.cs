@@ -1,10 +1,9 @@
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
-using Microsoft.Maui.Storage;
-using System.Threading.Tasks;
 
 namespace HolisticApp.ViewModels
 {
@@ -12,31 +11,31 @@ namespace HolisticApp.ViewModels
     {
         private readonly IUserRepository _userRepository;
         private readonly INavigation _navigation;
-        public User CurrentUser { get; }
+        private User CurrentUser { get; }
 
         [ObservableProperty]
-        private string age = string.Empty; // Initialisiert
+        private string _age = string.Empty; 
 
         [ObservableProperty]
-        private string selectedGender = string.Empty;
+        private string _selectedGender = string.Empty;
 
         [ObservableProperty]
-        private string height = string.Empty;
+        private string _height = string.Empty;
 
         [ObservableProperty]
-        private string weight = string.Empty;
+        private string _weight = string.Empty;
 
         [ObservableProperty]
-        private bool hasComplaint;
+        private bool _hasComplaint;
 
         [ObservableProperty]
-        private string selectedComplaint = string.Empty; // Initialisiert
+        private string _selectedComplaint = string.Empty; 
 
         [ObservableProperty]
-        private double severity = 1;
+        private double _severity = 1;
 
-        public string[] GenderOptions { get; } = new string[] { "Männlich", "Weiblich", "Divers" };
-        public string[] ComplaintOptions { get; } = new string[] { "Verdauungsbeschwerden", "Kopfschmerzen", "Rückenschmerzen" };
+        public string[] GenderOptions { get; } = ["Männlich", "Weiblich", "Divers"];
+        public string[] ComplaintOptions { get; } = ["Verdauungsbeschwerden", "Kopfschmerzen", "Rückenschmerzen"];
 
         public AnamnesisViewModel(User user, IUserRepository userRepository, INavigation navigation)
         {
@@ -47,8 +46,8 @@ namespace HolisticApp.ViewModels
             if (user.Age.HasValue)
                 Age = user.Age.Value.ToString();
             SelectedGender = string.IsNullOrEmpty(user.Gender) ? GenderOptions[0] : user.Gender;
-            Height = user.Height.HasValue ? user.Height.Value.ToString() : string.Empty;
-            Weight = user.Weight.HasValue ? user.Weight.Value.ToString() : string.Empty;
+            Height = user.Height.HasValue ? user.Height.Value.ToString(CultureInfo.InvariantCulture) : string.Empty;
+            Weight = user.Weight.HasValue ? user.Weight.Value.ToString(CultureInfo.InvariantCulture) : string.Empty;
             if (!string.IsNullOrEmpty(user.CurrentComplaint) && user.CurrentComplaint != "Keine Beschwerden")
             {
                 HasComplaint = true;
@@ -64,10 +63,10 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task SaveAsync()
+        private async Task SaveAsync()
         {
             // Verwende das aktuelle Fenster über Windows[0].Page statt Application.MainPage:
-            var currentPage = Application.Current?.Windows?[0]?.Page;
+            var currentPage = Application.Current?.Windows[0].Page;
             if (int.TryParse(Age, out int parsedAge))
                 CurrentUser.Age = parsedAge;
             else

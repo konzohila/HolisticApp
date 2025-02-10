@@ -1,9 +1,8 @@
 using HolisticApp.Models;
-using Microsoft.Maui.Controls;
 
 namespace HolisticApp.Views
 {
-    public partial class PatientDetailPage : ContentPage
+    public partial class PatientDetailPage
     {
         public PatientDetailPage(User patient)
         {

@@ -1,12 +1,10 @@
+using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
-using Microsoft.Maui.Controls;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HolisticApp.ViewModels
 {
@@ -15,20 +13,19 @@ namespace HolisticApp.ViewModels
         private readonly IUserRepository _userRepository;
         private readonly INavigation _navigation;
 
-        public User CurrentUser { get; } // Der aktuell angemeldete Admin
+        private User CurrentUser { get; } 
 
         public AdminDashboardViewModel(User currentUser, IUserRepository userRepository, INavigation navigation)
         {
             CurrentUser = currentUser;
             _userRepository = userRepository;
             _navigation = navigation;
-            Doctors = new ObservableCollection<User>();
+            Doctors = [];
         }
 
         [ObservableProperty]
-        private ObservableCollection<User> doctors;
-
-        // Property zur Anzeige der Initialen des Admins in der Toolbar
+        private ObservableCollection<User> _doctors;
+        
         public string UserInitials => GetInitials(CurrentUser.Username);
 
         private string GetInitials(string fullName)
@@ -40,7 +37,7 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task LoadDoctorsAsync()
+        private async Task LoadDoctorsAsync()
         {
             var allUsers = await _userRepository.GetUsersAsync();
             var doctorList = allUsers.Where(u => u.Role == UserRole.Doctor).ToList();
@@ -50,15 +47,22 @@ namespace HolisticApp.ViewModels
                 Doctors.Add(doctor);
             }
         }
-
+        
         [RelayCommand]
-        public async Task CreateDoctorAsync()
+        private async Task CreateDoctorAsync()
         {
-            await _navigation.PushAsync(new DoctorRegistrationPage());
+            var services = (Application.Current as App)?.Handler?.MauiContext?.Services
+                           ?? throw new InvalidOperationException("DI-Services nicht verfügbar.");
+            
+            var logger = services.GetService(typeof(ILogger<DoctorRegistrationPage>)) as ILogger<DoctorRegistrationPage>
+                         ?? throw new InvalidOperationException("Logger für DoctorRegistrationPage nicht gefunden.");
+            
+            var doctorRegistrationPage = new DoctorRegistrationPage(logger);
+            await _navigation.PushAsync(doctorRegistrationPage);
         }
 
         [RelayCommand]
-        public async Task OpenUserMenuAsync()
+        private async Task OpenUserMenuAsync()
         {
             await _navigation.PushAsync(new UserMenuPage(CurrentUser));
         }

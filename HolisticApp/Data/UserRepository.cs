@@ -1,17 +1,14 @@
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
-using MySqlConnector;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using MySqlConnector;
 
 namespace HolisticApp.Data
 {
-    public class UserRepository : IUserRepository
+    public class UserRepository(string connectionString, ILogger<UserRepository> logger) : IUserRepository
     {
-        private readonly ILogger<UserRepository> _logger;
-        private readonly string _connectionString;
+        private readonly ILogger<UserRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly string _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
 
         private const string selectAllUsersSql = "SELECT * FROM Users";
         private const string selectUserByIdSql = @"
@@ -33,12 +30,6 @@ namespace HolisticApp.Data
             INSERT INTO Users (Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, Role)
             VALUES (@username, @email, @passwordHash, @currentComplaint, @age, @gender, @height, @weight, @role)";
         private const string deleteUserSql = "DELETE FROM Users WHERE Id = @id";
-
-        public UserRepository(string connectionString, ILogger<UserRepository> logger)
-        {
-            _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        }
 
         private async Task<MySqlConnection> GetConnectionAsync()
         {
@@ -62,11 +53,11 @@ namespace HolisticApp.Data
             var users = new List<User>();
             try
             {
-                using var connection = await GetConnectionAsync();
-                using var command = connection.CreateCommand();
+                await using var connection = await GetConnectionAsync();
+                await using var command = connection.CreateCommand();
                 command.CommandText = selectAllUsersSql;
 
-                using var reader = await command.ExecuteReaderAsync();
+                await using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
                     users.Add(CreateUserFromReader(reader));
@@ -84,12 +75,12 @@ namespace HolisticApp.Data
         {
             try
             {
-                using var connection = await GetConnectionAsync();
-                using var command = connection.CreateCommand();
+                await using var connection = await GetConnectionAsync();
+                await using var command = connection.CreateCommand();
                 command.CommandText = selectUserByIdSql;
                 command.Parameters.AddWithValue("@id", id);
 
-                using var reader = await command.ExecuteReaderAsync();
+                await using var reader = await command.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
                 {
                     _logger.LogInformation("Benutzer mit ID {UserId} erfolgreich abgerufen.", id);
@@ -108,8 +99,8 @@ namespace HolisticApp.Data
         {
             try
             {
-                using var connection = await GetConnectionAsync();
-                using var command = connection.CreateCommand();
+                await using var connection = await GetConnectionAsync();
+                await using var command = connection.CreateCommand();
                 if (user.Id != 0)
                 {
                     command.CommandText = updateUserSql;
@@ -144,8 +135,8 @@ namespace HolisticApp.Data
         {
             try
             {
-                using var connection = await GetConnectionAsync();
-                using var command = connection.CreateCommand();
+                await using var connection = await GetConnectionAsync();
+                await using var command = connection.CreateCommand();
                 command.CommandText = deleteUserSql;
                 command.Parameters.AddWithValue("@id", id);
 
@@ -202,9 +193,9 @@ namespace HolisticApp.Data
                 command.Parameters.AddWithValue("@username", user.Username);
                 command.Parameters.AddWithValue("@email", user.Email);
                 command.Parameters.AddWithValue("@passwordHash", user.PasswordHash);
-                command.Parameters.AddWithValue("@currentComplaint", user.CurrentComplaint ?? "Keine Beschwerden");
+                command.Parameters.AddWithValue("@currentComplaint", user.CurrentComplaint);
                 command.Parameters.AddWithValue("@age", user.Age ?? (object)DBNull.Value);
-                command.Parameters.AddWithValue("@gender", user.Gender ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@gender", user.Gender);
                 command.Parameters.AddWithValue("@height", user.Height ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@weight", user.Weight ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@role", user.Role.ToString());
@@ -239,7 +230,7 @@ namespace HolisticApp.Data
         private decimal? GetNullableDecimal(MySqlDataReader reader, string columnName)
         {
             int ordinal = reader.GetOrdinal(columnName);
-            return reader.IsDBNull(ordinal) ? (decimal?)null : reader.GetDecimal(ordinal);
+            return reader.IsDBNull(ordinal) ? null : reader.GetDecimal(ordinal);
         }
 
         private int GetInt(MySqlDataReader reader, string columnName, int defaultValue = 0)

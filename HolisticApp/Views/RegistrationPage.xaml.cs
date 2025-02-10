@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.Views
 {
-    public partial class RegistrationPage : ContentPage
+    public partial class RegistrationPage
     {
         // Optional: Der Konstruktor kann einen Einladungstoken entgegennehmen
         public RegistrationPage(string? invitationToken = null)

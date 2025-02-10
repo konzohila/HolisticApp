@@ -2,17 +2,16 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Models;
 using HolisticApp.Views;
-using System.Threading.Tasks;
 
 namespace HolisticApp.ViewModels
 {
     public partial class HomeViewModel : ObservableObject
     {
         private readonly INavigation _navigation;
-        public User CurrentUser { get; }
+        private User CurrentUser { get; }
 
         [ObservableProperty]
-        private string userInitials = string.Empty; // Standardwert
+        private string _userInitials = string.Empty; // Standardwert
 
         public HomeViewModel(User user, INavigation navigation)
         {
@@ -25,13 +24,13 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task OpenAnamnesisAsync()
+        private async Task OpenAnamnesisAsync()
         {
             await _navigation.PushAsync(new AnamnesisPage(CurrentUser));
         }
 
         [RelayCommand]
-        public async Task OpenUserMenuAsync()
+        private async Task OpenUserMenuAsync()
         {
             await _navigation.PushAsync(new UserMenuPage(CurrentUser));
         }
