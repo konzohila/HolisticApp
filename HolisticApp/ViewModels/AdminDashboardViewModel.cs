@@ -1,31 +1,41 @@
-using Microsoft.Extensions.Logging;
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
+using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
+
+
 
 namespace HolisticApp.ViewModels
 {
-    public partial class AdminDashboardViewModel : ObservableObject
+    public abstract partial class AdminDashboardViewModel : ObservableObject
     {
         private readonly IUserRepository _userRepository;
         private readonly INavigation _navigation;
-
-        private User CurrentUser { get; } 
-
-        public AdminDashboardViewModel(User currentUser, IUserRepository userRepository, INavigation navigation)
-        {
-            CurrentUser = currentUser;
-            _userRepository = userRepository;
-            _navigation = navigation;
-            Doctors = [];
-        }
-
+        private readonly ILogger<AdminDashboardViewModel> _logger;
+        private readonly DoctorRegistrationPage _doctorRegistrationPage;
+        private readonly UserMenuPage _userMenuPage;
         [ObservableProperty]
         private ObservableCollection<User> _doctors;
-        
+        public User CurrentUser { get; }
+
+        public AdminDashboardViewModel(User currentUser,
+                                       IUserRepository userRepository,
+                                       INavigation navigation,
+                                       ILogger<AdminDashboardViewModel> logger, DoctorRegistrationPage doctorRegistrationPage, UserMenuPage userMenuPage)
+        {
+            CurrentUser = currentUser;
+            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+            _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _doctorRegistrationPage = doctorRegistrationPage;
+            _userMenuPage = userMenuPage;
+
+            Doctors = new ObservableCollection<User>();
+        }
+
         public string UserInitials => GetInitials(CurrentUser.Username);
 
         private string GetInitials(string fullName)
@@ -37,34 +47,53 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        private async Task LoadDoctorsAsync()
+        public async Task LoadDoctorsAsync()
         {
-            var allUsers = await _userRepository.GetUsersAsync();
-            var doctorList = allUsers.Where(u => u.Role == UserRole.Doctor).ToList();
-            Doctors.Clear();
-            foreach (var doctor in doctorList)
+            try
             {
-                Doctors.Add(doctor);
+                _logger.LogInformation("Lade alle Benutzer und filtere Doktoren für Admin {AdminId}", CurrentUser.Id);
+                var allUsers = await _userRepository.GetUsersAsync();
+                var doctorList = allUsers.Where(u => u.Role == UserRole.Doctor).ToList();
+
+                Doctors.Clear();
+                foreach (var doctor in doctorList)
+                {
+                    Doctors.Add(doctor);
+                }
+                _logger.LogInformation("LoadDoctorsAsync erfolgreich: {Count} Doktoren gefunden.", doctorList.Count);
             }
-        }
-        
-        [RelayCommand]
-        private async Task CreateDoctorAsync()
-        {
-            var services = (Application.Current as App)?.Handler?.MauiContext?.Services
-                           ?? throw new InvalidOperationException("DI-Services nicht verfügbar.");
-            
-            var logger = services.GetService(typeof(ILogger<DoctorRegistrationPage>)) as ILogger<DoctorRegistrationPage>
-                         ?? throw new InvalidOperationException("Logger für DoctorRegistrationPage nicht gefunden.");
-            
-            var doctorRegistrationPage = new DoctorRegistrationPage(logger);
-            await _navigation.PushAsync(doctorRegistrationPage);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler in LoadDoctorsAsync für Admin {AdminId}", CurrentUser.Id);
+            }
         }
 
         [RelayCommand]
-        private async Task OpenUserMenuAsync()
+        public async Task CreateDoctorAsync()
         {
-            await _navigation.PushAsync(new UserMenuPage(CurrentUser));
+            try
+            {
+                _logger.LogInformation("Admin {AdminId} navigiert zur DoctorRegistrationPage.", CurrentUser.Id);
+                await _navigation.PushAsync(_doctorRegistrationPage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Navigieren zu DoctorRegistrationPage.");
+            }
+        }
+
+        [RelayCommand]
+        public async Task OpenUserMenuAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Admin {AdminId} öffnet das User-Menü.", CurrentUser.Id);
+                await _navigation.PushAsync(_userMenuPage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Admin {AdminId}", CurrentUser.Id);
+            }
         }
     }
 }

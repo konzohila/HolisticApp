@@ -2,54 +2,75 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
+using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.ViewModels
 {
-    public partial class DoctorRegistrationViewModel(IUserRepository userRepository, INavigation navigation)
-        : ObservableObject
+    public partial class DoctorRegistrationViewModel : ObservableObject
     {
-        [ObservableProperty]
-        private string _username = string.Empty;
+        private readonly IUserRepository _userRepository;
+        private readonly INavigation _navigation;
+        private readonly ILogger<DoctorRegistrationViewModel> _logger;
 
-        [ObservableProperty]
-        private string _email = string.Empty;
+        [ObservableProperty] private string _username = string.Empty;
+        [ObservableProperty] private string _email = string.Empty;
+        [ObservableProperty] private string _password = string.Empty;
 
-        [ObservableProperty]
-        private string _password = string.Empty;
+        public DoctorRegistrationViewModel(IUserRepository userRepository,
+                                           INavigation navigation,
+                                           ILogger<DoctorRegistrationViewModel> logger)
+        {
+            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+            _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
         [RelayCommand]
-        private async Task RegisterAsync()
+        public async Task RegisterAsync()
         {
-            var currentPage = Application.Current?.Windows[0].Page;
-            if (string.IsNullOrWhiteSpace(Username) ||
-                string.IsNullOrWhiteSpace(Email) ||
-                string.IsNullOrWhiteSpace(Password))
+            var currentPage = Application.Current?.Windows?[0]?.Page;
+            try
             {
-                if (currentPage != null)
-                    await currentPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
-                return;
-            }
+                if (string.IsNullOrWhiteSpace(Username) ||
+                    string.IsNullOrWhiteSpace(Email) ||
+                    string.IsNullOrWhiteSpace(Password))
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
+                    _logger.LogWarning("DoctorRegistration fehlgeschlagen: Ein oder mehrere Felder sind leer.");
+                    return;
+                }
 
-            var doctor = new User
-            {
-                Username = Username,
-                Email = Email,
-                PasswordHash = Password, // Hinweis: In Produktion bitte vorher hashen!
-                Role = UserRole.Doctor,
-                MasterAccountId = null
-            };
+                var doctor = new User
+                {
+                    Username = Username,
+                    Email = Email,
+                    PasswordHash = Password, // In Produktion: PW hashen!
+                    Role = UserRole.Doctor,
+                    MasterAccountId = null
+                };
 
-            int result = await userRepository.SaveUserAsync(doctor);
-            if (result > 0)
-            {
-                if (currentPage != null)
-                    await currentPage.DisplayAlert("Erfolg", "Doktor erfolgreich registriert.", "OK");
-                await navigation.PopAsync();
+                _logger.LogInformation("Versuche, Doktor {Name} zu registrieren.", Username);
+                int result = await _userRepository.SaveUserAsync(doctor);
+                if (result > 0)
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Erfolg", "Doktor erfolgreich registriert.", "OK");
+                    _logger.LogInformation("Doktor {Name} wurde erfolgreich registriert.", Username);
+                    await _navigation.PopAsync();
+                }
+                else
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Fehler", "Fehler beim Registrieren des Doktors.", "OK");
+                    _logger.LogError("Fehler beim Registrieren von Doktor {Name}.", Username);
+                }
             }
-            else
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Unerwarteter Fehler bei der Doktor-Registrierung für {Name}.", Username);
                 if (currentPage != null)
-                    await currentPage.DisplayAlert("Fehler", "Fehler beim Registrieren des Doktors.", "OK");
+                    await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
             }
         }
     }

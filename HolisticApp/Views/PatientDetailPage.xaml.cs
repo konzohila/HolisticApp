@@ -7,7 +7,6 @@ namespace HolisticApp.Views
         public PatientDetailPage(User patient)
         {
             InitializeComponent();
-            // Setze das übergebene Patient-Objekt als BindingContext
             BindingContext = patient;
         }
     }

@@ -10,7 +10,12 @@ namespace HolisticApp.ViewModels
     public partial class LoginViewModel(
         IUserRepository userRepository,
         INavigation navigation,
-        ILogger<LoginViewModel> logger)
+        ILogger<LoginViewModel> logger,
+        AdminDashboardPage adminDashboardPage,
+        DoctorDashboardPage doctorDashboardPage,
+        AnamnesisPage anamnesisPage,
+        HomePage homePage,
+        RegistrationPage registrationPage)
         : ObservableObject
     {
         private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -56,12 +61,12 @@ namespace HolisticApp.ViewModels
                     // Navigation basierend auf der Benutzerrolle
                     if (user.Role == UserRole.Admin)
                     {
-                        await _navigation.PushAsync(new AdminDashboardPage(user));
+                        await _navigation.PushAsync(adminDashboardPage);
                         _logger.LogInformation("Navigiere zu AdminDashboardPage.");
                     }
                     else if (user.Role == UserRole.Doctor)
                     {
-                        await _navigation.PushAsync(new DoctorDashboardPage(user));
+                        await _navigation.PushAsync(doctorDashboardPage);
                         _logger.LogInformation("Navigiere zu DoctorDashboardPage.");
                     }
                     else
@@ -69,12 +74,12 @@ namespace HolisticApp.ViewModels
                         bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
                         if (!anamnesisCompleted)
                         {
-                            await _navigation.PushAsync(new AnamnesisPage(user));
+                            await _navigation.PushAsync(anamnesisPage);
                             _logger.LogInformation("Navigiere zu AnamnesisPage (Anamnese nicht abgeschlossen).");
                         }
                         else
                         {
-                            await _navigation.PushAsync(new HomePage(user));
+                            await _navigation.PushAsync(homePage);
                             _logger.LogInformation("Navigiere zu HomePage (Anamnese abgeschlossen).");
                         }
                     }
@@ -98,7 +103,7 @@ namespace HolisticApp.ViewModels
             try
             {
                 _logger.LogInformation("Navigiere zur Registrierungsseite.");
-                await _navigation.PushAsync(new RegistrationPage());
+                await _navigation.PushAsync(registrationPage);
             }
             catch (Exception ex)
             {

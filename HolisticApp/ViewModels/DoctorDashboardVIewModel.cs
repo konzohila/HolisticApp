@@ -1,9 +1,10 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
+using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
 
 namespace HolisticApp.ViewModels
 {
@@ -12,27 +13,30 @@ namespace HolisticApp.ViewModels
         private readonly IUserRepository _userRepository;
         private readonly IInvitationRepository _invitationRepository;
         private readonly INavigation _navigation;
-
-        private User CurrentUser { get; } // Der aktuell angemeldete Doktor
+        private readonly ILogger<DoctorDashboardViewModel> _logger;
+        [ObservableProperty]
+        private ObservableCollection<User> _patients;
+        [ObservableProperty]
+        private string _generatedInvitationLink = string.Empty;
+        public User CurrentUser { get; }
+        private readonly UserMenuPage _userMenuPage;
 
         public DoctorDashboardViewModel(User currentUser,
                                         IUserRepository userRepository,
                                         IInvitationRepository invitationRepository,
-                                        INavigation navigation)
+                                        INavigation navigation,
+                                        ILogger<DoctorDashboardViewModel> logger, UserMenuPage userMenuPage)
         {
             CurrentUser = currentUser;
-            _userRepository = userRepository;
-            _invitationRepository = invitationRepository;
-            _navigation = navigation;
-            Patients = [];
-            GeneratedInvitationLink = string.Empty; // Standardwert zugewiesen
+            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+            _invitationRepository = invitationRepository ?? throw new ArgumentNullException(nameof(invitationRepository));
+            _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _userMenuPage = userMenuPage;
+
+            Patients = new ObservableCollection<User>();
+            GeneratedInvitationLink = string.Empty;
         }
-
-        [ObservableProperty]
-        private ObservableCollection<User> _patients;
-
-        [ObservableProperty]
-        private string _generatedInvitationLink = string.Empty; // Initialisiert
 
         public string UserInitials => GetInitials(CurrentUser.Username);
 
@@ -47,49 +51,87 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        private async Task GenerateInvitationAsync()
+        public async Task GenerateInvitationAsync()
         {
-            var token = Guid.NewGuid().ToString();
-            var invitation = new Invitation
+            try
             {
-                Token = token,
-                MasterAccountId = CurrentUser.Id,
-                CreatedAt = DateTime.Now,
-                ExpiresAt = DateTime.Now.AddDays(7),
-                IsUsed = false
-            };
+                _logger.LogInformation("Doktor {DoctorId} erstellt Einladungstoken.", CurrentUser.Id);
 
-            await _invitationRepository.CreateInvitationAsync(invitation);
-            GeneratedInvitationLink = $"https://yourapp.com/register?token={token}";
-        }
+                var token = Guid.NewGuid().ToString();
+                var invitation = new Invitation
+                {
+                    Token = token,
+                    MasterAccountId = CurrentUser.Id,
+                    CreatedAt = DateTime.Now,
+                    ExpiresAt = DateTime.Now.AddDays(7),
+                    IsUsed = false
+                };
 
-        [RelayCommand]
-        private async Task LoadPatientsAsync()
-        {
-            var allUsers = await _userRepository.GetUsersAsync();
-            var patientsList = allUsers
-                .Where(u => u.Role == UserRole.Patient && u.MasterAccountId == CurrentUser.Id)
-                .ToList();
-            Patients.Clear();
-            foreach (var patient in patientsList)
+                await _invitationRepository.CreateInvitationAsync(invitation);
+                GeneratedInvitationLink = $"https://yourapp.com/register?token={token}";
+
+                _logger.LogInformation("Einladungstoken erfolgreich erstellt: {Link}", GeneratedInvitationLink);
+            }
+            catch (Exception ex)
             {
-                Patients.Add(patient);
+                _logger.LogError(ex, "Fehler in GenerateInvitationAsync für Doktor {DoctorId}", CurrentUser.Id);
             }
         }
 
         [RelayCommand]
-        private async Task OpenPatientDetailsAsync(User? patient)
+        public async Task LoadPatientsAsync()
         {
-            if (patient != null)
+            try
             {
-                await _navigation.PushAsync(new PatientDetailPage(patient));
+                _logger.LogInformation("Doktor {DoctorId} lädt Patientenliste.", CurrentUser.Id);
+                var allUsers = await _userRepository.GetUsersAsync();
+                var patientsList = allUsers
+                    .Where(u => u.Role == UserRole.Patient && u.MasterAccountId == CurrentUser.Id)
+                    .ToList();
+
+                Patients.Clear();
+                foreach (var patient in patientsList)
+                {
+                    Patients.Add(patient);
+                }
+                _logger.LogInformation("LoadPatientsAsync erfolgreich: {Count} Patienten gefunden.", patientsList.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler in LoadPatientsAsync für Doktor {DoctorId}", CurrentUser.Id);
             }
         }
 
         [RelayCommand]
-        private async Task OpenUserMenuAsync()
+        public async Task OpenPatientDetailsAsync(User patient)
         {
-            await _navigation.PushAsync(new UserMenuPage(CurrentUser));
+            try
+            {
+                if (patient != null)
+                {
+                    _logger.LogInformation("Doktor {DoctorId} öffnet PatientDetailPage für Patient {PatientId}",
+                        CurrentUser.Id, patient.Id);
+                    await _navigation.PushAsync(new PatientDetailPage(patient));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Öffnen der PatientDetailPage für Doktor {DoctorId}", CurrentUser.Id);
+            }
+        }
+
+        [RelayCommand]
+        public async Task OpenUserMenuAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Doktor {DoctorId} öffnet das User-Menü.", CurrentUser.Id);
+                await _navigation.PushAsync(_userMenuPage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Doktor {DoctorId}", CurrentUser.Id);
+            }
         }
     }
 }
