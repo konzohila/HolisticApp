@@ -12,12 +12,16 @@ namespace HolisticApp.ViewModels
         public User CurrentUser { get; }
 
         [ObservableProperty]
-        private string userInitials;
+        private string userInitials = string.Empty; // Standardwert
 
         public HomeViewModel(User user, INavigation navigation)
         {
             CurrentUser = user;
             _navigation = navigation;
+            // Optional: Du kannst hier auch gleich initialisieren, falls du das Ergebnis berechnen möchtest.
+            UserInitials = !string.IsNullOrWhiteSpace(user.Username)
+                ? user.Username.Substring(0, 1).ToUpper()
+                : string.Empty;
         }
 
         [RelayCommand]

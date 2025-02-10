@@ -2,6 +2,7 @@ using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.ViewModels;
 using Microsoft.Maui.Controls;
+using System;
 
 namespace HolisticApp.Views
 {
@@ -10,10 +11,12 @@ namespace HolisticApp.Views
         public DoctorDashboardPage(User currentUser)
         {
             InitializeComponent();
-            var userRepository = (Application.Current as App)
-                .Handler.MauiContext.Services.GetService(typeof(IUserRepository)) as IUserRepository;
-            var invitationRepository = (Application.Current as App)
-                .Handler.MauiContext.Services.GetService(typeof(IInvitationRepository)) as IInvitationRepository;
+            var app = Application.Current as App ?? throw new InvalidOperationException("Application is not available.");
+            var services = app.Handler?.MauiContext?.Services ?? throw new InvalidOperationException("DI Services not available.");
+            var userRepository = services.GetService(typeof(IUserRepository)) as IUserRepository 
+                                 ?? throw new InvalidOperationException("UserRepository not found.");
+            var invitationRepository = services.GetService(typeof(IInvitationRepository)) as IInvitationRepository 
+                                       ?? throw new InvalidOperationException("InvitationRepository not found.");
             BindingContext = new DoctorDashboardViewModel(currentUser, userRepository, invitationRepository, Navigation);
         }
 
@@ -21,13 +24,11 @@ namespace HolisticApp.Views
         {
             if (e.Item is User selectedPatient)
             {
-                // Rufe den Command im ViewModel auf
                 if (BindingContext is DoctorDashboardViewModel viewModel)
                 {
                     viewModel.OpenPatientDetailsCommand.Execute(selectedPatient);
                 }
             }
-            // Deselect the tapped item
             ((ListView)sender).SelectedItem = null;
         }
     }

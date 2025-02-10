@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
+using Microsoft.Maui.Controls;
 using System;
 using System.Threading.Tasks;
 
@@ -15,17 +16,16 @@ namespace HolisticApp.ViewModels
         private readonly INavigation _navigation;
 
         [ObservableProperty]
-        private string username;
+        private string username = string.Empty;
 
         [ObservableProperty]
-        private string email;
+        private string email = string.Empty;
 
         [ObservableProperty]
-        private string password;
+        private string password = string.Empty;
 
-        // Neue Property für den Einladungstoken
         [ObservableProperty]
-        private string invitationToken;
+        private string invitationToken = string.Empty;
 
         public RegistrationViewModel(IUserRepository userRepository, IInvitationRepository invitationRepository, INavigation navigation)
         {
@@ -37,47 +37,45 @@ namespace HolisticApp.ViewModels
         [RelayCommand]
         public async Task RegisterAsync()
         {
+            var currentPage = Application.Current?.Windows?[0]?.Page;
             if (string.IsNullOrWhiteSpace(Username) ||
                 string.IsNullOrWhiteSpace(Email) ||
                 string.IsNullOrWhiteSpace(Password))
             {
-                await App.Current.MainPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
                 return;
             }
-
-            var user = new User
+            
+            var user = new User()
             {
                 Username = Username,
                 Email = Email,
-                PasswordHash = Password // In Produktion bitte hashen!
+                PasswordHash = Password
             };
 
-            // Falls ein Einladungstoken vorliegt, verarbeite diesen:
             if (!string.IsNullOrWhiteSpace(InvitationToken))
             {
                 var invitation = await _invitationRepository.GetInvitationByTokenAsync(InvitationToken);
                 if (invitation == null || invitation.IsUsed || invitation.ExpiresAt < DateTime.Now)
                 {
-                    await App.Current.MainPage.DisplayAlert("Fehler", "Ungültiger oder abgelaufener Einladungstoken.", "OK");
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Fehler", "Ungültiger oder abgelaufener Einladungstoken.", "OK");
                     return;
                 }
-                // Setze den MasterAccountId des neuen Users auf den aus der Einladung
                 user.MasterAccountId = invitation.MasterAccountId;
-                // Setze die Rolle des Benutzers auf Patient
                 user.Role = UserRole.Patient;
 
-                // Markiere die Einladung als verwendet
                 await _invitationRepository.MarkInvitationAsUsedAsync(invitation.Id);
             }
             else
             {
-                // Optional: Falls ausschließlich registriert werden soll, wenn ein Token vorliegt,
-                // könnte man hier die Registrierung verweigern.
                 user.Role = UserRole.Patient;
             }
 
             await _userRepository.SaveUserAsync(user);
-            await App.Current.MainPage.DisplayAlert("Erfolg", "Benutzer erfolgreich registriert.", "OK");
+            if (currentPage != null)
+                await currentPage.DisplayAlert("Erfolg", "Benutzer erfolgreich registriert.", "OK");
             await _navigation.PopAsync();
         }
     }

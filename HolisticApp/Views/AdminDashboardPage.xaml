@@ -3,7 +3,9 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    xmlns:models="clr-namespace:HolisticApp.Models"
     x:Class="HolisticApp.Views.AdminDashboardPage"
+    x:DataType="viewmodels:AdminDashboardViewModel"
     Title="Admin Dashboard"
     BackgroundColor="{StaticResource BackgroundColor}">
 
@@ -18,7 +20,7 @@
             <Label Text="Doktoren:" FontAttributes="Bold" />
             <ListView ItemsSource="{Binding Doctors}">
                 <ListView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="models:User">
                         <ViewCell>
                             <StackLayout Padding="10">
                                 <Label Text="{Binding Username}" FontAttributes="Bold" />

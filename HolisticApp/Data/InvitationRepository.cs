@@ -38,12 +38,14 @@ namespace HolisticApp.Data
                 command.Parameters.AddWithValue("@isUsed", invitation.IsUsed);
 
                 var result = await command.ExecuteScalarAsync();
+                if (result == null)
+                    throw new InvalidOperationException("ExecuteScalarAsync returned null.");
                 invitation.Id = Convert.ToInt32(result);
                 return invitation;
             }
         }
 
-        public async Task<Invitation> GetInvitationByTokenAsync(string token)
+        public async Task<Invitation?> GetInvitationByTokenAsync(string token)
         {
             using (var connection = await GetConnectionAsync())
             using (var command = connection.CreateCommand())
@@ -58,7 +60,8 @@ namespace HolisticApp.Data
                         return new Invitation
                         {
                             Id = Convert.ToInt32(reader["Id"]),
-                            Token = reader["Token"].ToString(),
+                            // Vermeide mögliche Nullverweiszuweisung:
+                            Token = reader["Token"]?.ToString() ?? string.Empty,
                             MasterAccountId = Convert.ToInt32(reader["MasterAccountId"]),
                             CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
                             ExpiresAt = Convert.ToDateTime(reader["ExpiresAt"]),

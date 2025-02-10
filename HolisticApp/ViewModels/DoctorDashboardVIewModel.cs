@@ -29,22 +29,24 @@ namespace HolisticApp.ViewModels
             _invitationRepository = invitationRepository;
             _navigation = navigation;
             Patients = new ObservableCollection<User>();
+            GeneratedInvitationLink = string.Empty; // Standardwert zugewiesen
         }
 
         [ObservableProperty]
         private ObservableCollection<User> patients;
 
         [ObservableProperty]
-        private string generatedInvitationLink;
+        private string generatedInvitationLink = string.Empty; // Initialisiert
 
-        // Property zur Anzeige der Initialen in der Toolbar
         public string UserInitials => GetInitials(CurrentUser.Username);
 
         private string GetInitials(string fullName)
         {
             var parts = fullName.Split(' ');
-            if (parts.Length == 0) return "";
-            if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpper();
+            if (parts.Length == 0)
+                return string.Empty;
+            if (parts.Length == 1)
+                return parts[0].Substring(0, 1).ToUpper();
             return string.Concat(parts.Select(p => p[0])).ToUpper();
         }
 
@@ -79,7 +81,6 @@ namespace HolisticApp.ViewModels
             }
         }
 
-        // Neuer Command zum Öffnen der Detailseite für einen Patienten
         [RelayCommand]
         public async Task OpenPatientDetailsAsync(User patient)
         {
@@ -89,7 +90,6 @@ namespace HolisticApp.ViewModels
             }
         }
 
-        // Command zum Öffnen des UserMenüs (z.B. für Logout)
         [RelayCommand]
         public async Task OpenUserMenuAsync()
         {

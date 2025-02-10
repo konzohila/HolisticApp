@@ -1,5 +1,5 @@
 ﻿using HolisticApp.Data.Interfaces;
-using HolisticApp.Models; // Für UserRole
+using HolisticApp.Models;
 using HolisticApp.Views;
 using Microsoft.Maui.Storage;
 
@@ -7,41 +7,55 @@ namespace HolisticApp
 {
     public partial class App : Application
     {
+        private readonly IUserRepository _userRepository;
+
         public App(IUserRepository userRepository)
         {
             InitializeComponent();
-
-            // Zeige zunächst eine Lade-Seite
-            MainPage = new NavigationPage(new LoadingPage());
-
-            // Starte asynchrone Initialisierung
-            InitializeAsync(userRepository);
+            _userRepository = userRepository;
         }
 
-        private async void InitializeAsync(IUserRepository userRepository)
+        // Parameter als nullable deklariert
+        protected override Window CreateWindow(IActivationState? activationState)
+        {
+            // Erstelle ein Fenster mit einer temporären Lade-Seite.
+            var window = new Window(new NavigationPage(new LoadingPage()));
+            // Starte asynchrone Initialisierung.
+            InitializeAsync(window);
+            return window;
+        }
+
+        private async void InitializeAsync(Window window)
         {
             var userId = Preferences.Get("LoggedInUserId", 0);
+            Page newPage;
             if (userId > 0)
             {
-                var user = await userRepository.GetUserAsync(userId);
-                if (user.Role == UserRole.Doctor)
+                var user = await _userRepository.GetUserAsync(userId);
+                if (user != null)
                 {
-                    MainPage = new NavigationPage(new DoctorDashboardPage(user));
+                    if (user.Role == UserRole.Doctor)
+                        newPage = new DoctorDashboardPage(user);
+                    else if (user.Role == UserRole.Admin)
+                        newPage = new AdminDashboardPage(user);
+                    else
+                    {
+                        bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                        newPage = anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user);
+                    }
                 }
-                else if (user.Role == UserRole.Admin)
+                else
                 {
-                    MainPage = new NavigationPage(new AdminDashboardPage(user));
-                }
-                else // Patient
-                {
-                    bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
-                    MainPage = new NavigationPage(anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user));
+                    newPage = new LoginPage();
                 }
             }
             else
             {
-                MainPage = new NavigationPage(new LoginPage());
+                newPage = new LoginPage();
             }
+
+            // Aktualisiere die Page des Fensters.
+            window.Page = new NavigationPage(newPage);
         }
-    }     
+    }
 }

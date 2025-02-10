@@ -19,7 +19,6 @@ namespace HolisticApp.Views
         {
             base.OnAppearing();
 
-            // Lese die aktuell eingeloggte User-ID aus den Preferences
             int loggedInUserId = Preferences.Get("LoggedInUserId", 0);
             if (loggedInUserId == 0)
             {
@@ -28,11 +27,11 @@ namespace HolisticApp.Views
                 return;
             }
 
-            // Greife über den DI-Container auf das IUserRepository zu
-            var userRepository = (Application.Current as App)
-                .Handler.MauiContext.Services.GetService(typeof(IUserRepository)) as IUserRepository;
+            var app = Application.Current as App 
+                      ?? throw new InvalidOperationException("Application ist nicht vom erwarteten Typ.");
+            var userRepository = (app.Handler?.MauiContext?.Services.GetService(typeof(IUserRepository)) as IUserRepository)
+                                 ?? throw new InvalidOperationException("UserRepository nicht gefunden.");
 
-            // Lade den aktuell eingeloggten Benutzer
             var currentUser = await userRepository.GetUserAsync(loggedInUserId);
             if (currentUser == null || currentUser.Role != UserRole.Admin)
             {
@@ -41,7 +40,6 @@ namespace HolisticApp.Views
                 return;
             }
 
-            // Nur wenn der Benutzer ein Admin ist, wird der BindingContext gesetzt.
             BindingContext = new DoctorRegistrationViewModel(userRepository, Navigation);
         }
     }

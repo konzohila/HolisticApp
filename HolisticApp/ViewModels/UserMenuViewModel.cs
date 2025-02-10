@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Models;
 using HolisticApp.Views;
 using Microsoft.Maui.Storage;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace HolisticApp.ViewModels
@@ -21,15 +22,24 @@ namespace HolisticApp.ViewModels
         [RelayCommand]
         public async Task OpenSettingsAsync()
         {
-            await App.Current.MainPage.DisplayAlert("Einstellungen", "Hier können Sie die Einstellungen öffnen.", "OK");
+            var window = Application.Current?.Windows?.FirstOrDefault();
+            if (window?.Page != null)
+            {
+                await window.Page.DisplayAlert("Einstellungen", "Hier können Sie die Einstellungen öffnen.", "OK");
+            }
             await _navigation.PopAsync();
         }
 
         [RelayCommand]
-        public async Task LogoutAsync()
+        public Task LogoutAsync()
         {
             Preferences.Remove("LoggedInUserId");
-            Application.Current.MainPage = new NavigationPage(new LoginPage());
+            var window = Application.Current?.Windows?.FirstOrDefault();
+            if (window != null)
+            {
+                window.Page = new NavigationPage(new LoginPage());
+            }
+            return Task.CompletedTask;
         }
 
         [RelayCommand]
@@ -46,7 +56,11 @@ namespace HolisticApp.ViewModels
 
             string infoText = $"{ageInfo}\n{genderInfo}\n{heightInfo}\n{weightInfo}\n\n{complaintInfo}";
 
-            await App.Current.MainPage.DisplayAlert("Benutzer-Info", infoText, "OK");
+            var window = Application.Current?.Windows?.FirstOrDefault();
+            if (window?.Page != null)
+            {
+                await window.Page.DisplayAlert("Benutzer-Info", infoText, "OK");
+            }
         }
     }
 }

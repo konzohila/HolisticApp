@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
     x:Class="HolisticApp.Views.DoctorRegistrationPage"
+    x:DataType="viewmodels:DoctorRegistrationViewModel"
     Title="Ärzte Registrierung"
     BackgroundColor="{StaticResource BackgroundColor}">
 
@@ -13,23 +14,17 @@
                    FontSize="24" 
                    HorizontalOptions="Center" 
                    TextColor="{StaticResource PrimaryColor}" />
-
-            <!-- Eingabefelder -->
             <Entry x:Name="UsernameEntry" 
                    Text="{Binding Username}" 
                    Placeholder="Benutzername" />
-
             <Entry x:Name="EmailEntry" 
                    Text="{Binding Email}" 
                    Placeholder="Email" 
                    Keyboard="Email" />
-
             <Entry x:Name="PasswordEntry" 
                    Text="{Binding Password}" 
                    Placeholder="Passwort" 
                    IsPassword="True" />
-
-            <!-- Registrierungs-Button -->
             <Button Text="Registrieren" 
                     Command="{Binding RegisterCommand}" />
         </StackLayout>

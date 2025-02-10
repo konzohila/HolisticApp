@@ -83,7 +83,7 @@ namespace HolisticApp.Data
 
 
 
-        public async Task<User> GetUserAsync(int id)
+        public async Task<User?> GetUserAsync(int id)
         {
             using (var connection = await GetConnectionAsync())
             using (var command = connection.CreateCommand())
@@ -108,7 +108,6 @@ namespace HolisticApp.Data
                             Gender = GetString(reader, "Gender", "Nicht angegeben"),
                             Height = GetNullableDecimal(reader, "Height"),
                             Weight = GetNullableDecimal(reader, "Weight"),
-                            // Mapping für MasterAccountId:
                             MasterAccountId = GetNullableInt(reader, "MasterAccountId"),
                             Role = Enum.TryParse(GetString(reader, "Role", "Patient"), out UserRole parsedRole)
                                 ? parsedRole
@@ -119,7 +118,7 @@ namespace HolisticApp.Data
             }
             return null;
         }
-
+        
         public async Task<int> SaveUserAsync(User user)
         {
             using (var connection = await GetConnectionAsync())

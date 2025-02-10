@@ -15,22 +15,22 @@ namespace HolisticApp.ViewModels
         public User CurrentUser { get; }
 
         [ObservableProperty]
-        private string age;
+        private string age = string.Empty; // Initialisiert
 
         [ObservableProperty]
-        private string selectedGender;
+        private string selectedGender = string.Empty;
 
         [ObservableProperty]
-        private string height;
+        private string height = string.Empty;
 
         [ObservableProperty]
-        private string weight;
+        private string weight = string.Empty;
 
         [ObservableProperty]
         private bool hasComplaint;
 
         [ObservableProperty]
-        private string selectedComplaint;
+        private string selectedComplaint = string.Empty; // Initialisiert
 
         [ObservableProperty]
         private double severity = 1;
@@ -44,7 +44,6 @@ namespace HolisticApp.ViewModels
             _userRepository = userRepository;
             _navigation = navigation;
 
-            // Vorbefüllung der Felder aus dem aktuellen User
             if (user.Age.HasValue)
                 Age = user.Age.Value.ToString();
             SelectedGender = string.IsNullOrEmpty(user.Gender) ? GenderOptions[0] : user.Gender;
@@ -67,7 +66,8 @@ namespace HolisticApp.ViewModels
         [RelayCommand]
         public async Task SaveAsync()
         {
-            // Validierung und Update des Users
+            // Verwende das aktuelle Fenster über Windows[0].Page statt Application.MainPage:
+            var currentPage = Application.Current?.Windows?[0]?.Page;
             if (int.TryParse(Age, out int parsedAge))
                 CurrentUser.Age = parsedAge;
             else
@@ -89,7 +89,8 @@ namespace HolisticApp.ViewModels
             {
                 if (string.IsNullOrEmpty(SelectedComplaint))
                 {
-                    await App.Current.MainPage.DisplayAlert("Fehler", "Bitte wählen Sie eine Beschwerde aus.", "OK");
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Fehler", "Bitte wählen Sie eine Beschwerde aus.", "OK");
                     return;
                 }
                 CurrentUser.CurrentComplaint = $"{SelectedComplaint} (Stärke: {Severity}/10)";
@@ -102,13 +103,15 @@ namespace HolisticApp.ViewModels
             int result = await _userRepository.SaveUserAsync(CurrentUser);
             if (result > 0)
             {
-                await App.Current.MainPage.DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
                 Preferences.Set($"AnamnesisCompleted_{CurrentUser.Id}", true);
                 await _navigation.PushAsync(new HomePage(CurrentUser));
             }
             else
             {
-                await App.Current.MainPage.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK");
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK");
             }
         }
     }

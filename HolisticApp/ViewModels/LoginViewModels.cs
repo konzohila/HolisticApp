@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Views;
+using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,10 +16,10 @@ namespace HolisticApp.ViewModels
         private readonly INavigation _navigation;
 
         [ObservableProperty]
-        private string email;
+        private string email = string.Empty;
 
         [ObservableProperty]
-        private string password;
+        private string password = string.Empty;
 
         public LoginViewModel(IUserRepository userRepository, INavigation navigation)
         {
@@ -29,9 +30,11 @@ namespace HolisticApp.ViewModels
         [RelayCommand]
         public async Task LoginAsync()
         {
+            var currentPage = Application.Current?.Windows?[0]?.Page;
             if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
             {
-                await App.Current.MainPage.DisplayAlert("Fehler", "Bitte Email und Passwort eingeben.", "OK");
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Bitte Email und Passwort eingeben.", "OK");
                 return;
             }
             
