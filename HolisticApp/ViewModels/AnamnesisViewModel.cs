@@ -42,8 +42,7 @@ namespace HolisticApp.ViewModels
         public AnamnesisViewModel(User user,
                                   IUserRepository userRepository,
                                   INavigation navigation,
-                                  ILogger<AnamnesisViewModel> logger,
-                                  HomePage homepage)
+                                  ILogger<AnamnesisViewModel> logger)
         {
             CurrentUser = user;
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -118,7 +117,15 @@ namespace HolisticApp.ViewModels
                     Preferences.Set($"AnamnesisCompleted_{CurrentUser.Id}", true);
 
                     _logger.LogInformation("Anamnese erfolgreich gespeichert für User {UserId}. Navigiere HomePage.", CurrentUser.Id);
-                    await _navigation.PushAsync(homePage);
+                    if (Application.Current?.Handler != null)
+                    {
+                        var services = Application.Current.Handler.MauiContext?.Services;
+                        if (services != null)
+                        {
+                            var homePage = services.GetRequiredService<HomePage>();
+                            await _navigation.PushAsync(homePage);
+                        }
+                    }
                 }
                 else
                 {

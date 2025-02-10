@@ -82,52 +82,51 @@ namespace HolisticApp
             }
 
             // **ViewModels mit DI für Logger & Navigation registrieren**
-            builder.Services.AddTransient<ViewModels.LoginViewModel>(sp =>
-                new ViewModels.LoginViewModel(
+            builder.Services.AddTransient<LoginViewModel>(sp =>
+                new LoginViewModel(
                     sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
                     sp.GetRequiredService<INavigation>(),
-                    sp.GetRequiredService<ILogger<ViewModels.LoginViewModel>>()),
-                    sp.GetRequiredService<Views.AdminDashboardPage>();
+                    sp.GetRequiredService<ILogger<LoginViewModel>>()));
 
-            builder.Services.AddTransient<ViewModels.RegistrationViewModel>(sp =>
-                new ViewModels.RegistrationViewModel(
-                    sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
-                    sp.GetRequiredService<Data.Interfaces.IInvitationRepository>(),
-                    sp.GetRequiredService<INavigation>(),
-                    sp.GetRequiredService<ILogger<ViewModels.RegistrationViewModel>>()));
-
-            builder.Services.AddTransient<ViewModels.HomeViewModel>(sp =>
-                new ViewModels.HomeViewModel(
-                    sp.GetRequiredService<Models.User>(),
-                    sp.GetRequiredService<INavigation>(),
-                    sp.GetRequiredService<ILogger<ViewModels.HomeViewModel>>()));
-
-            builder.Services.AddTransient<ViewModels.AnamnesisViewModel>(sp =>
-                new ViewModels.AnamnesisViewModel(
-                    sp.GetRequiredService<Models.User>(),
-                    sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
-                    sp.GetRequiredService<INavigation>(),
-                    sp.GetRequiredService<ILogger<ViewModels.AnamnesisViewModel>>()));
-
-            builder.Services.AddTransient<ViewModels.UserMenuViewModel>(sp =>
-                new ViewModels.UserMenuViewModel(
-                    sp.GetRequiredService<Models.User>(),
-                    sp.GetRequiredService<INavigation>(),
-                    sp.GetRequiredService<ILogger<ViewModels.UserMenuViewModel>>()));
-
-            builder.Services.AddTransient<ViewModels.DoctorDashboardViewModel>(sp =>
-                new ViewModels.DoctorDashboardViewModel(
-                    sp.GetRequiredService<Models.User>(),
+            builder.Services.AddTransient<RegistrationViewModel>(sp =>
+                new RegistrationViewModel(
                     sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
                     sp.GetRequiredService<Data.Interfaces.IInvitationRepository>(),
                     sp.GetRequiredService<INavigation>(),
-                    sp.GetRequiredService<ILogger<ViewModels.DoctorDashboardViewModel>>()));
+                    sp.GetRequiredService<ILogger<RegistrationViewModel>>()));
 
-            builder.Services.AddTransient<ViewModels.DoctorRegistrationViewModel>(sp =>
-                new ViewModels.DoctorRegistrationViewModel(
+            builder.Services.AddTransient<HomeViewModel>(sp =>
+                new HomeViewModel(
+                    sp.GetRequiredService<Models.User>(),
+                    sp.GetRequiredService<INavigation>(),
+                    sp.GetRequiredService<ILogger<HomeViewModel>>()));
+
+            builder.Services.AddTransient<AnamnesisViewModel>(sp =>
+                new AnamnesisViewModel(
+                    sp.GetRequiredService<Models.User>(),
                     sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
                     sp.GetRequiredService<INavigation>(),
-                    sp.GetRequiredService<ILogger<ViewModels.DoctorRegistrationViewModel>>()));
+                    sp.GetRequiredService<ILogger<AnamnesisViewModel>>()));
+
+            builder.Services.AddTransient<UserMenuViewModel>(sp =>
+                new UserMenuViewModel(
+                    sp.GetRequiredService<Models.User>(),
+                    sp.GetRequiredService<INavigation>(),
+                    sp.GetRequiredService<ILogger<UserMenuViewModel>>()));
+
+            builder.Services.AddTransient<DoctorDashboardViewModel>(sp =>
+                new DoctorDashboardViewModel(
+                    sp.GetRequiredService<Models.User>(),
+                    sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
+                    sp.GetRequiredService<Data.Interfaces.IInvitationRepository>(),
+                    sp.GetRequiredService<INavigation>(),
+                    sp.GetRequiredService<ILogger<DoctorDashboardViewModel>>()));
+
+            builder.Services.AddTransient<DoctorRegistrationViewModel>(sp =>
+                new DoctorRegistrationViewModel(
+                    sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
+                    sp.GetRequiredService<INavigation>(),
+                    sp.GetRequiredService<ILogger<DoctorRegistrationViewModel>>()));
 
             // **Pages registrieren**
             builder.Services.AddTransient<Views.LoadingPage>();

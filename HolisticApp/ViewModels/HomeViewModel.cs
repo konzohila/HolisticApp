@@ -13,17 +13,11 @@ namespace HolisticApp.ViewModels
         [ObservableProperty]
         private string _userInitials = string.Empty;
         private User CurrentUser { get; }
-        private AnamnesisPage _anamnesisPage;
-        private UserMenuPage _userMenuPage;
 
         public HomeViewModel(User user,
                              INavigation navigation,
-                             ILogger<HomeViewModel> logger,
-                             AnamnesisPage anamnesisPage,
-                             UserMenuPage userMenuPage)
+                             ILogger<HomeViewModel> logger)
         {
-            _anamnesisPage = anamnesisPage;
-            _userMenuPage = userMenuPage;
             CurrentUser = user;
             _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -40,7 +34,15 @@ namespace HolisticApp.ViewModels
             try
             {
                 _logger.LogInformation("Öffne AnamnesisPage für User {UserId}", CurrentUser.Id);
-                await _navigation.PushAsync(_anamnesisPage);
+                if (Application.Current?.Handler != null)
+                {
+                    var services = Application.Current.Handler.MauiContext?.Services;
+                    if (services != null)
+                    {
+                        var anamnesisPage = services.GetRequiredService<AnamnesisPage>();
+                        await _navigation.PushAsync(anamnesisPage);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -54,7 +56,15 @@ namespace HolisticApp.ViewModels
             try
             {
                 _logger.LogInformation("Öffne UserMenuPage für User {UserId}", CurrentUser.Id);
-                await _navigation.PushAsync(_userMenuPage);
+                if (Application.Current?.Handler != null)
+                {
+                    var services = Application.Current.Handler.MauiContext?.Services;
+                    if (services != null)
+                    {
+                        var userMenuPage = services.GetRequiredService<UserMenuPage>();
+                        await _navigation.PushAsync(userMenuPage);
+                    }
+                }
             }
             catch (Exception ex)
             {

@@ -19,20 +19,18 @@ namespace HolisticApp.ViewModels
         [ObservableProperty]
         private string _generatedInvitationLink = string.Empty;
         public User CurrentUser { get; }
-        private readonly UserMenuPage _userMenuPage;
 
         public DoctorDashboardViewModel(User currentUser,
                                         IUserRepository userRepository,
                                         IInvitationRepository invitationRepository,
                                         INavigation navigation,
-                                        ILogger<DoctorDashboardViewModel> logger, UserMenuPage userMenuPage)
+                                        ILogger<DoctorDashboardViewModel> logger)
         {
             CurrentUser = currentUser;
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _invitationRepository = invitationRepository ?? throw new ArgumentNullException(nameof(invitationRepository));
             _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _userMenuPage = userMenuPage;
 
             Patients = new ObservableCollection<User>();
             GeneratedInvitationLink = string.Empty;
@@ -103,7 +101,7 @@ namespace HolisticApp.ViewModels
         }
 
         [RelayCommand]
-        public async Task OpenPatientDetailsAsync(User patient)
+        public async Task OpenPatientDetailsAsync(User? patient)
         {
             try
             {
@@ -126,7 +124,12 @@ namespace HolisticApp.ViewModels
             try
             {
                 _logger.LogInformation("Doktor {DoctorId} öffnet das User-Menü.", CurrentUser.Id);
-                await _navigation.PushAsync(_userMenuPage);
+                var services = Application.Current?.Handler?.MauiContext?.Services;
+                if (services != null)
+                {
+                    var userMenuPage = services.GetRequiredService<UserMenuPage>();
+                    await _navigation.PushAsync(userMenuPage);
+                }
             }
             catch (Exception ex)
             {

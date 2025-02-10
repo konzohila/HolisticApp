@@ -10,12 +10,7 @@ namespace HolisticApp.ViewModels
     public partial class LoginViewModel(
         IUserRepository userRepository,
         INavigation navigation,
-        ILogger<LoginViewModel> logger,
-        AdminDashboardPage adminDashboardPage,
-        DoctorDashboardPage doctorDashboardPage,
-        AnamnesisPage anamnesisPage,
-        HomePage homePage,
-        RegistrationPage registrationPage)
+        ILogger<LoginViewModel> logger)
         : ObservableObject
     {
         private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -61,12 +56,29 @@ namespace HolisticApp.ViewModels
                     // Navigation basierend auf der Benutzerrolle
                     if (user.Role == UserRole.Admin)
                     {
-                        await _navigation.PushAsync(adminDashboardPage);
+                        if (Application.Current?.Handler != null)
+                        {
+                            var services = Application.Current.Handler.MauiContext?.Services;
+                            if (services != null)
+                            {
+                                var adminDashboardPage = services.GetRequiredService<AdminDashboardPage>();
+                                await _navigation.PushAsync(adminDashboardPage);
+                            }
+                        }
+
                         _logger.LogInformation("Navigiere zu AdminDashboardPage.");
                     }
                     else if (user.Role == UserRole.Doctor)
                     {
-                        await _navigation.PushAsync(doctorDashboardPage);
+                        if (Application.Current?.Handler != null)
+                        {
+                            var services = Application.Current.Handler.MauiContext?.Services;
+                            if (services != null)
+                            {
+                                var doctorDashboardPage = services.GetRequiredService<DoctorDashboardPage>();
+                                await _navigation.PushAsync(doctorDashboardPage);
+                            }
+                        }
                         _logger.LogInformation("Navigiere zu DoctorDashboardPage.");
                     }
                     else
@@ -74,12 +86,28 @@ namespace HolisticApp.ViewModels
                         bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
                         if (!anamnesisCompleted)
                         {
-                            await _navigation.PushAsync(anamnesisPage);
+                            if (Application.Current?.Handler != null)
+                            {
+                                var services = Application.Current.Handler.MauiContext?.Services;
+                                if (services != null)
+                                {
+                                    var anamnesisPage = services.GetRequiredService<AnamnesisPage>();
+                                    await _navigation.PushAsync(anamnesisPage);
+                                }
+                            }
                             _logger.LogInformation("Navigiere zu AnamnesisPage (Anamnese nicht abgeschlossen).");
                         }
                         else
                         {
-                            await _navigation.PushAsync(homePage);
+                            if (Application.Current?.Handler != null)
+                            {
+                                var services = Application.Current.Handler.MauiContext?.Services;
+                                if (services != null)
+                                {
+                                    var homePage = services.GetRequiredService<HomePage>();
+                                    await _navigation.PushAsync(homePage);
+                                }
+                            }
                             _logger.LogInformation("Navigiere zu HomePage (Anamnese abgeschlossen).");
                         }
                     }
@@ -103,7 +131,15 @@ namespace HolisticApp.ViewModels
             try
             {
                 _logger.LogInformation("Navigiere zur Registrierungsseite.");
-                await _navigation.PushAsync(registrationPage);
+                if (Application.Current?.Handler != null)
+                {
+                    var services = Application.Current.Handler.MauiContext?.Services;
+                    if (services != null)
+                    {
+                        var registrationPage = services.GetRequiredService<RegistrationPage>();
+                        await _navigation.PushAsync(registrationPage);
+                    }
+                }
             }
             catch (Exception ex)
             {

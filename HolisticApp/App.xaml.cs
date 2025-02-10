@@ -30,7 +30,12 @@ namespace HolisticApp
                 if (userId <= 0)
                 {
                     Debug.WriteLine("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
-                    window.Page = new NavigationPage(new LoginPage());
+                    var services = Current?.Handler?.MauiContext?.Services;
+                    if (services != null)
+                    {
+                        var loginPage = services.GetRequiredService<LoginPage>();
+                        window.Page = loginPage;
+                    }
                     return;
                 }
 
@@ -38,7 +43,12 @@ namespace HolisticApp
                 if (user == null)
                 {
                     Debug.WriteLine($"[App] Kein User für die gespeicherte ID ({userId}) gefunden. Navigiere zur Login-Seite.");
-                    window.Page = new NavigationPage(new LoginPage());
+                    var services = Current?.Handler?.MauiContext?.Services;
+                    if (services != null)
+                    {
+                        var loginPage = services.GetRequiredService<LoginPage>();
+                        window.Page = loginPage;
+                    }
                     return;
                 }
 
@@ -47,11 +57,24 @@ namespace HolisticApp
                 {
                     case UserRole.Doctor:
                         Debug.WriteLine($"[App] User {user.Id} (Doctor) gefunden. Navigiere zur Doktor-Dashboard-Seite.");
-                        newPage = new DoctorDashboardPage(user);
+                        var services = Current?.Handler?.MauiContext?.Services;
+                        if (services != null)
+                        {
+                            var doctorDashboardPage = services.GetRequiredService<DoctorDashboardPage>();
+                            newPage = doctorDashboardPage;
+                        }
                         break;
                     case UserRole.Admin:
                         Debug.WriteLine($"[App] User {user.Id} (Admin) gefunden. Navigiere zur Admin-Dashboard-Seite.");
-                        newPage = new AdminDashboardPage(user);
+                        if (Application.Current?.Handler != null)
+                        {
+                            var services = Application.Current.Handler.MauiContext?.Services;
+                            if (services != null)
+                            {
+                                var adminDashboardPage = services.GetRequiredService<AdminDashboardPage>();
+                                newPage = adminDashboardPage;
+                            }
+                        }
                         break;
                     default:
                         bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
@@ -59,7 +82,6 @@ namespace HolisticApp
                         newPage = anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user);
                         break;
                 }
-
                 window.Page = new NavigationPage(newPage);
             }
             catch (Exception ex)

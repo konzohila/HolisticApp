@@ -12,17 +12,14 @@ namespace HolisticApp.ViewModels
         private readonly ILogger<UserMenuViewModel> _logger;
 
         public User CurrentUser { get; }
-        private readonly LoginPage _loginPage;
 
         public UserMenuViewModel(User user,
                                  INavigation navigation,
-                                 ILogger<UserMenuViewModel> logger, 
-                                 LoginPage loginPage)
+                                 ILogger<UserMenuViewModel> logger)
         {
             CurrentUser = user;
             _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _loginPage = loginPage;
         }
 
         [RelayCommand]
@@ -53,7 +50,15 @@ namespace HolisticApp.ViewModels
                 var window = Application.Current?.Windows?.FirstOrDefault();
                 if (window != null)
                 {
-                    window.Page = new NavigationPage(_loginPage);
+                    if (Application.Current?.Handler != null)
+                    {
+                        var services = Application.Current.Handler.MauiContext?.Services;
+                        if (services != null)
+                        {
+                            var loginPage = services.GetRequiredService<LoginPage>();
+                            window.Page = loginPage;
+                        }
+                    }
                 }
                 _logger.LogInformation("User {UserId} hat sich ausgeloggt.", CurrentUser.Id);
             }
