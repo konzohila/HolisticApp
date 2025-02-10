@@ -53,33 +53,25 @@ namespace HolisticApp
                 }
 
                 Page newPage;
+                if (Current?.Handler == null) return;
+                var mauiservices = Current.Handler.MauiContext?.Services;
+                if (mauiservices == null) return;
                 switch (user.Role)
                 {
                     case UserRole.Doctor:
                         Debug.WriteLine($"[App] User {user.Id} (Doctor) gefunden. Navigiere zur Doktor-Dashboard-Seite.");
-                        var services = Current?.Handler?.MauiContext?.Services;
-                        if (services != null)
-                        {
-                            var doctorDashboardPage = services.GetRequiredService<DoctorDashboardPage>();
-                            newPage = doctorDashboardPage;
-                        }
+                        var doctorDashboardPage = mauiservices.GetRequiredService<DoctorDashboardPage>();
+                        newPage = doctorDashboardPage;
                         break;
                     case UserRole.Admin:
                         Debug.WriteLine($"[App] User {user.Id} (Admin) gefunden. Navigiere zur Admin-Dashboard-Seite.");
-                        if (Application.Current?.Handler != null)
-                        {
-                            var services = Application.Current.Handler.MauiContext?.Services;
-                            if (services != null)
-                            {
-                                var adminDashboardPage = services.GetRequiredService<AdminDashboardPage>();
-                                newPage = adminDashboardPage;
-                            }
-                        }
+                        var adminDashboardPage = mauiservices.GetRequiredService<AdminDashboardPage>();
+                        newPage = adminDashboardPage;
                         break;
                     default:
                         bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
                         Debug.WriteLine($"[App] User {user.Id} (Patient) gefunden. Anamnese abgeschlossen: {anamnesisCompleted}");
-                        newPage = anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user);
+                        newPage = anamnesisCompleted ? mauiservices.GetRequiredService<HomePage>() : mauiservices.GetRequiredService<AnamnesisPage>();
                         break;
                 }
                 window.Page = new NavigationPage(newPage);
@@ -88,7 +80,14 @@ namespace HolisticApp
             {
                 Debug.WriteLine($"[App] Fehler während der Initialisierung: {ex.Message}");
                 Debug.WriteLine(ex.StackTrace);
-                window.Page = new NavigationPage(new LoginPage());
+                if (Current?.Handler != null)
+                {
+                    var mauiservices = Current.Handler.MauiContext?.Services;
+                    if (mauiservices != null)
+                    {
+                        window.Page = mauiservices.GetRequiredService<AnamnesisPage>();            
+                    }
+                }
             }
         }
     }
