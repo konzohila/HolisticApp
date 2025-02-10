@@ -2,6 +2,7 @@
 using HolisticApp.Models;
 using HolisticApp.Views;
 using Microsoft.Maui.Storage;
+using System.Diagnostics;
 
 namespace HolisticApp
 {
@@ -15,47 +16,59 @@ namespace HolisticApp
             _userRepository = userRepository;
         }
 
-        // Parameter als nullable deklariert
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            // Erstelle ein Fenster mit einer temporären Lade-Seite.
             var window = new Window(new NavigationPage(new LoadingPage()));
-            // Starte asynchrone Initialisierung.
             InitializeAsync(window);
             return window;
         }
 
         private async void InitializeAsync(Window window)
         {
-            var userId = Preferences.Get("LoggedInUserId", 0);
-            Page newPage;
-            if (userId > 0)
+            try
             {
-                var user = await _userRepository.GetUserAsync(userId);
-                if (user != null)
+                int userId = Preferences.Get("LoggedInUserId", 0);
+                if (userId <= 0)
                 {
-                    if (user.Role == UserRole.Doctor)
-                        newPage = new DoctorDashboardPage(user);
-                    else if (user.Role == UserRole.Admin)
-                        newPage = new AdminDashboardPage(user);
-                    else
-                    {
-                        bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
-                        newPage = anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user);
-                    }
+                    Debug.WriteLine("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
+                    window.Page = new NavigationPage(new LoginPage());
+                    return;
                 }
-                else
-                {
-                    newPage = new LoginPage();
-                }
-            }
-            else
-            {
-                newPage = new LoginPage();
-            }
 
-            // Aktualisiere die Page des Fensters.
-            window.Page = new NavigationPage(newPage);
+                var user = await _userRepository.GetUserAsync(userId);
+                if (user == null)
+                {
+                    Debug.WriteLine($"[App] Kein User für die gespeicherte ID ({userId}) gefunden. Navigiere zur Login-Seite.");
+                    window.Page = new NavigationPage(new LoginPage());
+                    return;
+                }
+
+                Page newPage;
+                switch (user.Role)
+                {
+                    case UserRole.Doctor:
+                        Debug.WriteLine($"[App] User {user.Id} (Doctor) gefunden. Navigiere zur Doktor-Dashboard-Seite.");
+                        newPage = new DoctorDashboardPage(user);
+                        break;
+                    case UserRole.Admin:
+                        Debug.WriteLine($"[App] User {user.Id} (Admin) gefunden. Navigiere zur Admin-Dashboard-Seite.");
+                        newPage = new AdminDashboardPage(user);
+                        break;
+                    default:
+                        bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                        Debug.WriteLine($"[App] User {user.Id} (Patient) gefunden. Anamnese abgeschlossen: {anamnesisCompleted}");
+                        newPage = anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user);
+                        break;
+                }
+
+                window.Page = new NavigationPage(newPage);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[App] Fehler während der Initialisierung: {ex.Message}");
+                Debug.WriteLine(ex.StackTrace);
+                window.Page = new NavigationPage(new LoginPage());
+            }
         }
     }
 }

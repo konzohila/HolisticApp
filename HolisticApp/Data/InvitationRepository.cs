@@ -1,18 +1,19 @@
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using MySqlConnector;
-using System;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.Data
 {
     public class InvitationRepository : IInvitationRepository
     {
+        private readonly ILogger<InvitationRepository> _logger;
         private readonly string _connectionString;
 
-        public InvitationRepository(string connectionString)
+        public InvitationRepository(string connectionString, ILogger<InvitationRepository> logger)
         {
             _connectionString = connectionString;
+            _logger = logger;
         }
 
         private async Task<MySqlConnection> GetConnectionAsync()
@@ -27,21 +28,31 @@ namespace HolisticApp.Data
             using (var connection = await GetConnectionAsync())
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = @"
-                    INSERT INTO Invitations (Token, MasterAccountId, CreatedAt, ExpiresAt, IsUsed)
-                    VALUES (@token, @masterAccountId, @createdAt, @expiresAt, @isUsed);
-                    SELECT LAST_INSERT_ID();";
-                command.Parameters.AddWithValue("@token", invitation.Token);
-                command.Parameters.AddWithValue("@masterAccountId", invitation.MasterAccountId);
-                command.Parameters.AddWithValue("@createdAt", invitation.CreatedAt);
-                command.Parameters.AddWithValue("@expiresAt", invitation.ExpiresAt);
-                command.Parameters.AddWithValue("@isUsed", invitation.IsUsed);
+                try
+                {
+                    command.CommandText = @"
+                INSERT INTO Invitations (Token, MasterAccountId, CreatedAt, ExpiresAt, IsUsed)
+                VALUES (@token, @masterAccountId, @createdAt, @expiresAt, @isUsed);
+                SELECT LAST_INSERT_ID();";
+                    command.Parameters.AddWithValue("@token", invitation.Token);
+                    command.Parameters.AddWithValue("@masterAccountId", invitation.MasterAccountId);
+                    command.Parameters.AddWithValue("@createdAt", invitation.CreatedAt);
+                    command.Parameters.AddWithValue("@expiresAt", invitation.ExpiresAt);
+                    command.Parameters.AddWithValue("@isUsed", invitation.IsUsed);
 
-                var result = await command.ExecuteScalarAsync();
-                if (result == null)
-                    throw new InvalidOperationException("ExecuteScalarAsync returned null.");
-                invitation.Id = Convert.ToInt32(result);
-                return invitation;
+                    var result = await command.ExecuteScalarAsync();
+                    if (result == null)
+                        throw new InvalidOperationException("ExecuteScalarAsync returned null.");
+
+                    invitation.Id = Convert.ToInt32(result);
+                    _logger.LogInformation("Invitation (ID: {InvitationId}) wurde erfolgreich erstellt.", invitation.Id);
+                    return invitation;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Fehler beim Erstellen der Invitation mit Token {Token}", invitation.Token);
+                    throw;
+                }
             }
         }
 

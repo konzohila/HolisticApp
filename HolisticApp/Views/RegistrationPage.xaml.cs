@@ -1,5 +1,6 @@
 using HolisticApp.Data.Interfaces;
 using HolisticApp.ViewModels;
+using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.Views
 {
@@ -17,7 +18,11 @@ namespace HolisticApp.Views
                                  ?? throw new InvalidOperationException("UserRepository nicht gefunden.");
             var invitationRepository = services.GetService(typeof(IInvitationRepository)) as IInvitationRepository 
                                        ?? throw new InvalidOperationException("InvitationRepository nicht gefunden.");
-            var viewModel = new RegistrationViewModel(userRepository, invitationRepository, Navigation);
+            var logger = services.GetService(typeof(ILogger<RegistrationViewModel>)) as ILogger<RegistrationViewModel>
+                         ?? throw new InvalidOperationException("Logger für RegistrationViewModel nicht gefunden.");
+    
+            var viewModel = new RegistrationViewModel(userRepository, invitationRepository, Navigation, logger);
+    
             if (!string.IsNullOrWhiteSpace(invitationToken))
             {
                 viewModel.InvitationToken = invitationToken;
