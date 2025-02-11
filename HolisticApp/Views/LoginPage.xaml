@@ -7,17 +7,111 @@
     x:DataType="viewmodels:LoginViewModel"
     Title="Login"
     BackgroundColor="{StaticResource BackgroundColor}">
-    
+
     <ScrollView>
-        <StackLayout Padding="30" Spacing="20" VerticalOptions="Center">
-            <Label Text="Willkommen zurück!" 
-                   FontSize="24" 
-                   HorizontalOptions="Center" 
-                   TextColor="{StaticResource PrimaryColor}" />
-            <Entry Text="{Binding Email}" Placeholder="Email" Keyboard="Email" />
-            <Entry Text="{Binding Password}" Placeholder="Passwort" IsPassword="True" />
-            <Button Text="Login" Command="{Binding LoginCommand}" />
-            <Button Text="Registrieren" Command="{Binding RegisterCommand}" BackgroundColor="{StaticResource SecondaryColor}" />
-        </StackLayout>
+        <VerticalStackLayout 
+            Padding="{OnPlatform Android=20, iOS=10, MacCatalyst=60, WinUI=60}" 
+            Spacing="{OnPlatform Android=20, iOS=10, MacCatalyst=40, WinUI=40}" 
+            HorizontalOptions="Center" 
+            VerticalOptions="Center"
+            BackgroundColor="Transparent">
+
+            <!-- Logo -->
+            <Image Source="continuum_health_logo.png"
+                   Margin="0,-90,0,-20"
+                   HorizontalOptions="Center"/>
+
+            <!-- Login Card -->
+            <Frame HasShadow="True" 
+                   BackgroundColor="{StaticResource SecondaryColor}"
+                   CornerRadius="{OnPlatform Android=20, iOS=20, MacCatalyst=40, WinUI=40}"
+                   Padding="{OnPlatform Android=20, iOS=20, MacCatalyst=40, WinUI=40}">
+                <VerticalStackLayout Spacing="{OnPlatform Android=15, iOS=15, MacCatalyst=30, WinUI=30}">
+                    
+                    <!-- Email-Feld -->
+                    <Label TextColor="{StaticResource PrimaryColor}" 
+                           FontAttributes="Bold">
+                        <Label.FontSize>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="Android,iOS" Value="14" />
+                                <On Platform="MacCatalyst,WinUI" Value="28" />
+                            </OnPlatform>
+                        </Label.FontSize>
+                    </Label>
+                    <Border StrokeShape="RoundRectangle 8" 
+                            StrokeThickness="0" 
+                            BackgroundColor="{StaticResource SecondaryColor}"
+                            Padding="{OnPlatform Android=10, iOS=10, MacCatalyst=20, WinUI=20}">
+                        <Entry Placeholder="Email" 
+                               Text="{Binding Email}" 
+                               TextColor="Black">
+                            <Entry.FontSize>
+                                <OnPlatform x:TypeArguments="x:Double">
+                                    <On Platform="Android,iOS" Value="14" />
+                                    <On Platform="MacCatalyst,WinUI" Value="28" />
+                                </OnPlatform>
+                            </Entry.FontSize>
+                        </Entry>
+                    </Border>
+
+                    <!-- Passwort-Feld -->
+                    <Label TextColor="{StaticResource PrimaryColor}" 
+                           FontAttributes="Bold">
+                        <Label.FontSize>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="Android,iOS" Value="14" />
+                                <On Platform="MacCatalyst,WinUI" Value="28" />
+                            </OnPlatform>
+                        </Label.FontSize>
+                    </Label>
+                    <Border StrokeShape="RoundRectangle 8" 
+                            StrokeThickness="0" 
+                            BackgroundColor="{StaticResource SecondaryColor}"
+                            Padding="{OnPlatform Android=10, iOS=10, MacCatalyst=20, WinUI=20}">
+                        <Entry Placeholder="Passwort" 
+                               Text="{Binding Password}" 
+                               IsPassword="True" 
+                               TextColor="Black">
+                            <Entry.FontSize>
+                                <OnPlatform x:TypeArguments="x:Double">
+                                    <On Platform="Android,iOS" Value="14" />
+                                    <On Platform="MacCatalyst,WinUI" Value="28" />
+                                </OnPlatform>
+                            </Entry.FontSize>
+                        </Entry>
+                    </Border>
+
+                    <!-- Login-Button -->
+                    <Button Text="Login" 
+                            Command="{Binding LoginCommand}" 
+                            TextColor="White" 
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            HeightRequest="{OnPlatform Android=50, iOS=50, MacCatalyst=100, WinUI=100}">
+                        <Button.FontSize>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="Android,iOS" Value="16" />
+                                <On Platform="MacCatalyst,WinUI" Value="32" />
+                            </OnPlatform>
+                        </Button.FontSize>
+                    </Button>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Registrieren-Button -->
+            <Button Text="Registrieren" 
+                    Command="{Binding RegisterCommand}" 
+                    TextColor="{StaticResource PrimaryColor}" 
+                    BackgroundColor="{StaticResource BorderColor}" 
+                    BorderColor="{StaticResource PrimaryColor}" 
+                    BorderWidth="1"
+                    HeightRequest="{OnPlatform Android=50, iOS=50, MacCatalyst=100, WinUI=100}">
+                <Button.FontSize>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <On Platform="Android,iOS" Value="16" />
+                        <On Platform="MacCatalyst,WinUI" Value="32" />
+                    </OnPlatform>
+                </Button.FontSize>
+            </Button>
+        </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

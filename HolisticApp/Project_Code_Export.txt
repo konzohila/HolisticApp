@@ -1,0 +1,2205 @@
+===== Datei: App.xaml =====
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HolisticApp.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
+
+
+===== Datei: App.xaml.cs =====
+﻿using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace HolisticApp;
+
+public partial class App
+{
+    private readonly IUserRepository _userRepository;
+    private readonly ILogger<App> _logger;
+    private readonly IUserSession _userSession;
+
+    [Obsolete("Obsolete")]
+    public App(IUserRepository userRepository, ILogger<App> logger, IUserSession userSession)
+    {
+        InitializeComponent();
+        _userRepository = userRepository;
+        _logger = logger;
+        _userSession = userSession;
+        _logger.LogInformation("Die App wurde gestartet.");
+
+        // Setze die Shell als MainPage
+        MainPage = new AppShell();
+
+        // Starte die initiale Navigation
+        InitializeAsync();
+    }
+
+    private async void InitializeAsync()
+    {
+        try
+        {
+            await Task.Delay(500); 
+            
+            var userId = Preferences.Get("LoggedInUserId", 0);
+            if (userId <= 0)
+            {
+                _logger.LogInformation("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
+                await Shell.Current.GoToAsync("//LoginPage");
+                return;
+            }
+
+            var user = await _userRepository.GetUserAsync(userId);
+            if (user == null)
+            {
+                _logger.LogError("[App] Kein User für die gespeicherte ID gefunden. Navigiere zur Login-Seite.");
+                await Shell.Current.GoToAsync("//LoginPage");
+                return;
+            }
+            _userSession.SetUser(user);
+            // Navigiere basierend auf der Benutzerrolle
+            switch (user.Role)
+            {
+                case UserRole.Doctor:
+                    _logger.LogInformation("[App] User {UserId} (Doctor) gefunden. Navigiere zur DoctorDashboardPage.", user.Id);
+                    await Shell.Current.GoToAsync("//DoctorDashboardPage");
+                    break;
+                case UserRole.Admin:
+                    _logger.LogInformation("[App] User {UserId} (Admin) gefunden. Navigiere zur AdminDashboardPage.", user.Id);
+                    await Shell.Current.GoToAsync("//AdminDashboardPage");
+                    break;
+                default:
+                    var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                    _logger.LogInformation("[App] User {UserId} (Patient) gefunden. Anamnese abgeschlossen: {AnamnesisCompleted}", user.Id, anamnesisCompleted);
+                    if (anamnesisCompleted)
+                        await Shell.Current.GoToAsync("//HomePage");
+                    else
+                        await Shell.Current.GoToAsync("//AnamnesisPage");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[App] Fehler während der Initialisierung");
+            await Shell.Current.GoToAsync("//LoginPage");
+        }
+    }
+}
+
+
+===== Datei: MauiProgram.cs =====
+﻿using HolisticApp.Services.Interfaces;
+using HolisticApp.ViewModels;
+using Microsoft.Extensions.Logging;
+using Serilog;
+
+#if ANDROID
+using Android.App;
+using Android.Content;
+#endif
+
+#if MACCATALYST
+using Foundation;
+#endif
+
+namespace HolisticApp;
+
+public static class MauiProgram
+{
+    public static MauiApp CreateMauiApp()
+    {
+        try
+        {
+            #if ANDROID
+            // Log-Datei für Android einrichten
+            var externalFilesDir = Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath;
+            if (string.IsNullOrEmpty(externalFilesDir))
+            {
+                throw new InvalidOperationException("ExternalFilesDir konnte nicht ermittelt werden.");
+            }
+
+            var logDirectory = Path.Combine(externalFilesDir, "HolisticAppLogs");
+            Directory.CreateDirectory(logDirectory);
+            var logFilePath = Path.Combine(logDirectory, "app.log");
+            #endif
+
+            #if MACCATALYST
+            // Log-Datei für macOS einrichten
+            var libraryPath = NSFileManager.DefaultManager.GetUrls(NSSearchPathDirectory.LibraryDirectory, NSSearchPathDomain.User)[0].Path;
+            var macLogDirectory = Path.Combine(libraryPath, "HolisticAppLogs");
+            Directory.CreateDirectory(macLogDirectory);
+            var macLogFilePath = Path.Combine(macLogDirectory, "app.log");
+            #endif
+
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.File(
+                    #if ANDROID
+                    logFilePath,
+                    #elif MACCATALYST
+                    macLogFilePath,
+                    #endif
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 7,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fehler beim Initialisieren des Loggings: {ex}");
+        }
+            
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+            .ConfigureFonts(fonts =>
+            {
+                #if MACCATALYST
+                fonts.AddFont("Helvetica", "SystemFont");
+                #else
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                #endif
+            });
+
+        // Logging konfigurieren
+        builder.Logging.ClearProviders();
+        builder.Logging.AddSerilog();
+
+        // **Shell-Registrierung für die Navigation**
+        builder.Services.AddSingleton<Shell>();
+
+        // **Navigation registrieren**
+        builder.Services.AddSingleton<INavigation>(sp =>
+        {
+            var shell = sp.GetRequiredService<Shell>();
+            var navService = shell.Navigation;
+            if (navService == null)
+            {
+                throw new InvalidOperationException("INavigation konnte nicht aus Shell extrahiert werden.");
+            }
+            return navService;
+        });
+
+        builder.Services.AddSingleton<INavigationService, Services.NavigationService>();
+
+        // **Datenbankverbindung initialisieren**
+        var connectionString = "Server=database-1.cjs4qmoaa9sv.eu-central-1.rds.amazonaws.com;Database=holisticapp;User=admin;Password=pwpwpwpw;";
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            Log.Error("Die Verbindungszeichenfolge für die Datenbank ist leer oder null.");
+        }
+        else
+        {
+            builder.Services.AddSingleton<Data.Interfaces.IUserRepository>(sp =>
+                new Data.UserRepository(connectionString,
+                    sp.GetRequiredService<ILogger<Data.UserRepository>>()));
+
+            builder.Services.AddSingleton<Data.Interfaces.IInvitationRepository>(sp =>
+                new Data.InvitationRepository(connectionString,
+                    sp.GetRequiredService<ILogger<Data.InvitationRepository>>()));
+        }
+        
+        builder.Services.AddSingleton<IUserSession, Services.UserSession>();
+
+        // **ViewModels mit DI für Logger & Navigation registrieren**
+        builder.Services.AddTransient<LoginViewModel>(sp =>
+            new LoginViewModel(
+                sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
+                sp.GetRequiredService<INavigationService>(),
+                sp.GetRequiredService<ILogger<LoginViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
+
+        builder.Services.AddTransient<RegistrationViewModel>(sp =>
+            new RegistrationViewModel(
+                sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
+                sp.GetRequiredService<Data.Interfaces.IInvitationRepository>(),
+                sp.GetRequiredService<INavigationService>(),
+                sp.GetRequiredService<ILogger<RegistrationViewModel>>()));
+
+        builder.Services.AddTransient<HomeViewModel>(sp =>
+            new HomeViewModel(
+                sp.GetRequiredService<INavigationService>(),
+                sp.GetRequiredService<ILogger<HomeViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
+
+        builder.Services.AddTransient<AnamnesisViewModel>(sp =>
+            new AnamnesisViewModel(
+                sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
+                sp.GetRequiredService<INavigationService>(),
+                sp.GetRequiredService<ILogger<AnamnesisViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
+
+        builder.Services.AddTransient<UserMenuViewModel>(sp =>
+            new UserMenuViewModel(
+                sp.GetRequiredService<INavigationService>(),
+                sp.GetRequiredService<ILogger<UserMenuViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
+
+        builder.Services.AddTransient<DoctorDashboardViewModel>(sp =>
+            new DoctorDashboardViewModel(
+                sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
+                sp.GetRequiredService<Data.Interfaces.IInvitationRepository>(),
+                sp.GetRequiredService<INavigationService>(),
+                sp.GetRequiredService<ILogger<DoctorDashboardViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
+
+        builder.Services.AddTransient<DoctorRegistrationViewModel>(sp =>
+            new DoctorRegistrationViewModel(
+                sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
+                sp.GetRequiredService<INavigationService>(),
+                sp.GetRequiredService<ILogger<DoctorRegistrationViewModel>>()));
+
+        // **Pages registrieren**
+        builder.Services.AddTransient<Views.LoginPage>(sp =>
+            new Views.LoginPage(
+                sp.GetRequiredService<LoginViewModel>()));
+        builder.Services.AddTransient<Views.RegistrationPage>(sp =>
+            new Views.RegistrationPage(
+                sp.GetRequiredService<RegistrationViewModel>()));
+        builder.Services.AddTransient<Views.HomePage>(sp =>
+            new Views.HomePage(
+                sp.GetRequiredService<HomeViewModel>()));
+        builder.Services.AddTransient<Views.AnamnesisPage>(sp =>
+            new Views.AnamnesisPage(
+                sp.GetRequiredService<AnamnesisViewModel>()));
+        builder.Services.AddTransient<Views.UserMenuPage>(sp =>
+            new Views.UserMenuPage(
+                sp.GetRequiredService<UserMenuViewModel>()));
+        builder.Services.AddTransient<Views.AdminDashboardPage>(sp =>
+            new Views.AdminDashboardPage(
+                sp.GetRequiredService<AdminDashboardViewModel>()));
+        builder.Services.AddTransient<Views.DoctorDashboardPage>(sp =>
+            new Views.DoctorDashboardPage(
+                sp.GetRequiredService<DoctorDashboardViewModel>()));
+        builder.Services.AddTransient<Views.DoctorRegistrationPage>(sp =>
+            new Views.DoctorRegistrationPage(
+                sp.GetRequiredService<DoctorRegistrationViewModel>()));
+        builder.Services.AddTransient<Views.PatientDetailPage>();
+
+        return builder.Build();
+    }
+}
+
+
+===== Datei: HolisticApp.csproj =====
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!-- Hier alle Plattformen auflisten -->
+        <TargetFrameworks>net9.0-android;net9.0-maccatalyst</TargetFrameworks>
+
+        <OutputType>Exe</OutputType>
+        <RootNamespace>HolisticApp</RootNamespace>
+        <UseMaui>true</UseMaui>
+        <SingleProject>true</SingleProject>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- Display name -->
+        <ApplicationTitle>HolisticApp</ApplicationTitle>
+
+        <!-- App Identifier -->
+        <ApplicationId>com.companyname.holisticapp</ApplicationId>
+
+        <!-- Versions -->
+        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+        <ApplicationVersion>1</ApplicationVersion>
+
+        <!-- Windows -->
+        <WindowsPackageType>None</WindowsPackageType>
+    </PropertyGroup>
+
+    <!-- Plattformabhängige Einstellungen -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
+        <SupportedOSPlatformVersion>21.0</SupportedOSPlatformVersion>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-maccatalyst'">
+        <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- App Icon -->
+        <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" Color="#512BD4" />
+
+        <!-- Splash Screen -->
+        <MauiSplashScreen Include="Resources/Splash/splash.svg" Color="#512BD4" BaseSize="128,128" />
+
+        <!-- Images -->
+        <MauiImage Include="Resources/Images/*" />
+        <MauiImage Update="Resources/Images/dotnet_bot.png" Resize="True" BaseSize="300,185" />
+
+        <!-- Custom Fonts -->
+        <MauiFont Include="Resources/Fonts/*" />
+
+        <!-- Raw Assets -->
+        <MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+        <PackageReference Include="MySqlConnector" Version="2.4.0" />
+        <PackageReference Include="Serilog" Version="4.1.0" />
+        <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+        <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+        <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.2" />
+    </ItemGroup>
+
+</Project>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Models/User.cs =====
+namespace HolisticApp.Models;
+
+public enum UserRole
+{
+    Patient,
+    Doctor,
+    Admin
+}
+
+public class User(
+    string? username = "",
+    string email = "",
+    string passwordHash = "",
+    string currentComplaint = "",
+    string gender = "",
+    UserRole role = UserRole.Patient,
+    int? age = null,
+    decimal? height = null,
+    decimal? weight = null,
+    int? masterAccountId = null)
+{
+    public int Id { get; init; }
+    public string? Username { get; set; } = username;
+    public string Email { get; set; } = email;
+    public string PasswordHash { get; init; } = passwordHash;
+    public string CurrentComplaint { get; set; } = currentComplaint;
+    public string Gender { get; set; } = gender;
+
+    public int? Age { get; set; } = age;
+    public decimal? Height { get; set; } = height;
+    public decimal? Weight { get; set; } = weight;
+
+    public UserRole Role { get; set; } = role;
+    public int? MasterAccountId { get; set; } = masterAccountId;
+    public override string ToString() =>
+        $"{Username} ({Email}) - {Gender}, {Age?.ToString() ?? "N/A"} Jahre, {Role}";
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Models/Invitation.cs =====
+namespace HolisticApp.Models;
+
+public class Invitation
+{
+    public int Id { get; set; }
+    public string Token { get; set; } = string.Empty;
+    public int MasterAccountId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public bool IsUsed { get; set; }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/RegistrationPage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class RegistrationPage
+{
+    public RegistrationPage(RegistrationViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/PatientDetailPage.xaml.cs =====
+using HolisticApp.Models;
+
+namespace HolisticApp.Views;
+
+public partial class PatientDetailPage
+{
+    public PatientDetailPage(User? patient)
+    {
+        InitializeComponent();
+        BindingContext = patient;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/AdminDashboardPage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class AdminDashboardPage
+{
+    public AdminDashboardPage(AdminDashboardViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/UserMenuPage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class UserMenuPage
+{
+    public UserMenuPage(UserMenuViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/HomePage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class HomePage
+{
+    public HomePage(HomeViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/AnamnesisPage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class AnamnesisPage
+{
+    public AnamnesisPage(AnamnesisViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/DoctorRegistrationPage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class DoctorRegistrationPage
+{
+    public DoctorRegistrationPage(DoctorRegistrationViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/DoctorDashboardPage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class DoctorDashboardPage
+{
+    public DoctorDashboardPage(DoctorDashboardViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/LoginPage.xaml.cs =====
+using HolisticApp.ViewModels;
+
+namespace HolisticApp.Views;
+
+public partial class LoginPage
+{
+    public LoginPage(LoginViewModel vm)
+    {
+        InitializeComponent();
+        BindingContext = vm;
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/LoginPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.LoginPage"
+    x:DataType="viewmodels:LoginViewModel"
+    Title="Login"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="30"
+            Spacing="20"
+            HorizontalOptions="Center"
+            VerticalOptions="Center">
+            
+            <!--~1~ Optionales Logo / Icon @1@
+            <Image Source="heart.png"
+                   WidthRequest="60"
+                   HeightRequest="60"
+                   HorizontalOptions="Center"/>-->
+            
+            <!-- Überschrift -->
+            <Label Text="Continuum Health"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource PrimaryColor}"
+                   Margin="0,0,0,10"/>
+
+            <!-- Email-Label + abgerundetes Textfeld -->
+            <Label Text="Email"
+                   TextColor="{StaticResource PrimaryColor}"
+                   FontAttributes="Bold"/>
+            <Border StrokeShape="RoundRectangle 8"
+                    StrokeThickness="0"
+                    BackgroundColor="#F5F5F5"
+                    Padding="10"
+                    Margin="0,0,0,10">
+                <Entry Placeholder="Email"
+                       Text="{Binding Email}"
+                       TextColor="Black"/>
+            </Border>
+
+            <!-- Passwort-Label + abgerundetes Textfeld -->
+            <Label Text="Passwort"
+                   TextColor="{StaticResource PrimaryColor}"
+                   FontAttributes="Bold"/>
+            <Border StrokeShape="RoundRectangle 8"
+                    StrokeThickness="0"
+                    BackgroundColor="#F5F5F5"
+                    Padding="10"
+                    Margin="0,0,0,10">
+                <Entry Placeholder="Passwort"
+                       Text="{Binding Password}"
+                       IsPassword="True"
+                       TextColor="Black"/>
+            </Border>
+
+            <!-- Login-Button -->
+            <Button Text="Login"
+                    Command="{Binding LoginCommand}"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource SecondaryColor}"
+                    CornerRadius="6"
+                    Margin="0,10,0,0"
+                    HeightRequest="50"/>
+
+            <!-- Registrieren-Button (mit Rahmen) -->
+            <Button Text="Registrieren"
+                    Command="{Binding RegisterCommand}"
+                    TextColor="{StaticResource SecondaryColor}"
+                    BackgroundColor="Transparent"
+                    BorderColor="{StaticResource SecondaryColor}"
+                    BorderWidth="1"
+                    CornerRadius="6"
+                    HeightRequest="50"
+                    Margin="0,10,0,0"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/AnamnesisPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.AnamnesisPage"
+    x:DataType="viewmodels:AnamnesisViewModel"
+    Title="Anamnese"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zurück" 
+                     Order="Primary"
+                     Priority="0"
+                     Command="{Binding ReturnCommand}" />
+    </ContentPage.ToolbarItems>
+    
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="20">
+            <Label Text="Alter (Jahre):" />
+            <Entry Text="{Binding Age}" Placeholder="Alter eingeben" Keyboard="Numeric" />
+            <Label Text="Geschlecht:" />
+            <Picker ItemsSource="{Binding GenderOptions}" 
+                    SelectedItem="{Binding SelectedGender}" 
+                    Title="Wähle dein Geschlecht" />
+            <Label Text="Größe (cm):" />
+            <Entry Text="{Binding Height}" Placeholder="Größe eingeben" Keyboard="Numeric" />
+            <Label Text="Gewicht (kg):" />
+            <Entry Text="{Binding Weight}" Placeholder="Gewicht eingeben" Keyboard="Numeric" />
+            <StackLayout Orientation="Horizontal" VerticalOptions="Center">
+                <Label Text="Aktuelle Beschwerden:" VerticalOptions="Center"/>
+                <Switch IsToggled="{Binding HasComplaint}" VerticalOptions="Center" Margin="10,0"/>
+            </StackLayout>
+            <Label Text="Beschwerde auswählen:" IsVisible="{Binding HasComplaint}" />
+            <Picker ItemsSource="{Binding ComplaintOptions}" 
+                    SelectedItem="{Binding SelectedComplaint}" 
+                    Title="Wähle eine Beschwerde" IsVisible="{Binding HasComplaint}" />
+            <Label Text="{Binding Severity, StringFormat=Stärke der Beschwerden: {0}}" 
+                   IsVisible="{Binding HasComplaint}" />
+            <Stepper Minimum="1" Maximum="10" Increment="1" 
+                     Value="{Binding Severity}" 
+                     IsVisible="{Binding HasComplaint}" />
+            <Button Text="Speichern" Command="{Binding SaveCommand}" />
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/DoctorRegistrationPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.DoctorRegistrationPage"
+    x:DataType="viewmodels:DoctorRegistrationViewModel"
+    Title="Ärzte Registrierung"
+    BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ScrollView>
+        <StackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+            <Label Text="Registrierung als Arzt/Therapeut" 
+                   FontSize="24" 
+                   HorizontalOptions="Center" 
+                   TextColor="{StaticResource PrimaryColor}" />
+            <Entry x:Name="UsernameEntry" 
+                   Text="{Binding Username}" 
+                   Placeholder="Benutzername" />
+            <Entry x:Name="EmailEntry" 
+                   Text="{Binding Email}" 
+                   Placeholder="Email" 
+                   Keyboard="Email" />
+            <Entry x:Name="PasswordEntry" 
+                   Text="{Binding Password}" 
+                   Placeholder="Passwort" 
+                   IsPassword="True" />
+            <Button Text="Registrieren" 
+                    Command="{Binding RegisterCommand}" />
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/UserMenuPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.UserMenuPage"
+    x:DataType="vm:UserMenuViewModel"
+    Title="Benutzermenü"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zurück" 
+                     Order="Primary"
+                     Priority="0"
+                     Command="{Binding ReturnCommand}" />
+    </ContentPage.ToolbarItems>
+    
+    <StackLayout Padding="20" Spacing="15">
+        <Label Text="{Binding Username}" 
+               FontAttributes="Bold" 
+               FontSize="Large" />
+        <Button Text="Info" Command="{Binding ShowInfoCommand}" />
+        <Button Text="Einstellungen" Command="{Binding OpenSettingsCommand}" />
+        <Button Text="Logout" Command="{Binding LogoutCommand}" />
+    </StackLayout>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/PatientDetailPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:HolisticApp.Models"
+    x:Class="HolisticApp.Views.PatientDetailPage"
+    x:DataType="models:User"
+    Title="Patient Details"
+    BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="10">
+            <Label Text="Patient Details" FontSize="24" FontAttributes="Bold" HorizontalOptions="Center"/>
+            <Label Text="{Binding Username}" FontSize="20" />
+            <Label Text="{Binding Email}" FontSize="16" />
+            <Label Text="{Binding Age, StringFormat='Age: {0}'}" />
+            <Label Text="{Binding Gender, StringFormat='Gender: {0}'}" />
+            <Label Text="{Binding Height, StringFormat='Height: {0} cm'}" />
+            <Label Text="{Binding Weight, StringFormat='Weight: {0} kg'}" />
+            <Label Text="{Binding CurrentComplaint, StringFormat='Complaint: {0}'}" />
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/HomePage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.HomePage"
+    x:DataType="viewmodels:HomeViewModel"
+    Title="Übersicht"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
+    </ContentPage.ToolbarItems>
+    
+    <ContentPage.Content>
+        <StackLayout Padding="20" Spacing="20">
+            <Button Text="Anamnese" 
+                    Command="{Binding OpenAnamnesisCommand}" 
+                    HeightRequest="50" 
+                    FontSize="18" 
+                    CornerRadius="10"/>
+            <Button Text="Befunde hochladen" />
+            <Button Text="Chat" />
+        </StackLayout>
+    </ContentPage.Content>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/RegistrationPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:HolisticApp.ViewModels"
+    x:Class="HolisticApp.Views.RegistrationPage"
+    x:DataType="vm:RegistrationViewModel"
+    Title="Registrierung"
+    BackgroundColor="{StaticResource BackgroundColor}">
+    
+    <ScrollView>
+        <StackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+            <Label Text="Registrierung" 
+                   FontSize="24" 
+                   HorizontalOptions="Center" 
+                   TextColor="{StaticResource PrimaryColor}" />
+            <Entry Text="{Binding Username}" Placeholder="Benutzername" />
+            <Entry Text="{Binding Email}" Placeholder="Email" Keyboard="Email" />
+            <Entry Text="{Binding Password}" Placeholder="Passwort" IsPassword="True" />
+            <Button Text="Registrieren" Command="{Binding RegisterCommand}" />
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/DoctorDashboardPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    xmlns:models="clr-namespace:HolisticApp.Models"
+    x:Class="HolisticApp.Views.DoctorDashboardPage"
+    x:DataType="viewmodels:DoctorDashboardViewModel"
+    Title="Doctor Dashboard"
+    BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="20">
+            <Label Text="Ihr Einladungslink:" FontAttributes="Bold" />
+            <Label Text="{Binding GeneratedInvitationLink}" LineBreakMode="WordWrap" />
+            <Button Text="Einladung generieren" Command="{Binding GenerateInvitationCommand}" />
+            <Button Text="Patienten laden" Command="{Binding LoadPatientsCommand}" />
+            <Label Text="Registrierte Patienten:" FontAttributes="Bold" />
+            <ListView x:Name="PatientsListView" ItemsSource="{Binding Patients}">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:User">
+                        <ViewCell>
+                            <StackLayout Padding="10">
+                                <Label Text="{Binding Username}" FontAttributes="Bold" />
+                                <Label Text="{Binding Email}" />
+                            </StackLayout>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/AdminDashboardPage.xaml =====
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    xmlns:models="clr-namespace:HolisticApp.Models"
+    x:Class="HolisticApp.Views.AdminDashboardPage"
+    x:DataType="viewmodels:AdminDashboardViewModel"
+    Title="Admin Dashboard"
+    BackgroundColor="{StaticResource BackgroundColor}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="20">
+            <Button Text="Doktor erstellen" Command="{Binding CreateDoctorCommand}" />
+            <Button Text="Lade Doktoren" Command="{Binding LoadDoctorsCommand}" />
+            <Label Text="Doktoren:" FontAttributes="Bold" />
+            <ListView ItemsSource="{Binding Doctors}">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:User">
+                        <ViewCell>
+                            <StackLayout Padding="10">
+                                <Label Text="{Binding Username}" FontAttributes="Bold" />
+                                <Label Text="{Binding Email}" />
+                            </StackLayout>
+                        </ViewCell>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Data/InvitationRepository.cs =====
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using Microsoft.Extensions.Logging;
+using MySqlConnector;
+
+namespace HolisticApp.Data;
+
+public class InvitationRepository(string connectionString, ILogger<InvitationRepository> logger)
+    : IInvitationRepository
+{
+    private async Task<MySqlConnection> GetConnectionAsync()
+    {
+        var connection = new MySqlConnection(connectionString);
+        await connection.OpenAsync();
+        return connection;
+    }
+
+    public async Task<Invitation> CreateInvitationAsync(Invitation invitation)
+    {
+        await using var connection = await GetConnectionAsync();
+        await using var command = connection.CreateCommand();
+        try
+        {
+            command.CommandText = @"
+                INSERT INTO Invitations (Token, MasterAccountId, CreatedAt, ExpiresAt, IsUsed)
+                VALUES (@token, @masterAccountId, @createdAt, @expiresAt, @isUsed);
+                SELECT LAST_INSERT_ID();";
+            command.Parameters.AddWithValue("@token", invitation.Token);
+            command.Parameters.AddWithValue("@masterAccountId", invitation.MasterAccountId);
+            command.Parameters.AddWithValue("@createdAt", invitation.CreatedAt);
+            command.Parameters.AddWithValue("@expiresAt", invitation.ExpiresAt);
+            command.Parameters.AddWithValue("@isUsed", invitation.IsUsed);
+
+            var result = await command.ExecuteScalarAsync();
+            if (result == null)
+                throw new InvalidOperationException("ExecuteScalarAsync returned null.");
+
+            invitation.Id = Convert.ToInt32(result);
+            logger.LogInformation("Invitation (ID: {InvitationId}) wurde erfolgreich erstellt.", invitation.Id);
+            return invitation;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Fehler beim Erstellen der Invitation mit Token {Token}", invitation.Token);
+            throw;
+        }
+    }
+
+    public async Task<Invitation?> GetInvitationByTokenAsync(string token)
+    {
+        await using var connection = await GetConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM Invitations WHERE Token = @token";
+        command.Parameters.AddWithValue("@token", token);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return new Invitation
+            {
+                Id = Convert.ToInt32(reader["Id"]),
+                // Vermeide mögliche Nullverweiszuweisung:
+                Token = reader["Token"].ToString() ?? string.Empty,
+                MasterAccountId = Convert.ToInt32(reader["MasterAccountId"]),
+                CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                ExpiresAt = Convert.ToDateTime(reader["ExpiresAt"]),
+                IsUsed = Convert.ToBoolean(reader["IsUsed"])
+            };
+        }
+
+        return null;
+    }
+
+    public async Task MarkInvitationAsUsedAsync(int invitationId)
+    {
+        await using var connection = await GetConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE Invitations SET IsUsed = TRUE WHERE Id = @id";
+        command.Parameters.AddWithValue("@id", invitationId);
+        await command.ExecuteNonQueryAsync();
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Data/UserRepository.cs =====
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using Microsoft.Extensions.Logging;
+using MySqlConnector;
+
+namespace HolisticApp.Data;
+
+public class UserRepository(string connectionString, ILogger<UserRepository> logger) : IUserRepository
+{
+    private readonly ILogger<UserRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly string _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+
+    private const string selectAllUsersSql = "SELECT * FROM Users";
+    private const string selectUserByIdSql = @"
+            SELECT Id, Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, MasterAccountId, Role 
+            FROM Users WHERE Id = @id";
+    private const string updateUserSql = @"
+            UPDATE Users
+            SET Username = @username, 
+                Email = @email, 
+                PasswordHash = @passwordHash,
+                CurrentComplaint = @currentComplaint,
+                Age = @age,
+                Gender = @gender,
+                Height = @height,
+                Weight = @weight,
+                Role = @role
+            WHERE Id = @id";
+    private const string insertUserSql = @"
+            INSERT INTO Users (Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, Role)
+            VALUES (@username, @email, @passwordHash, @currentComplaint, @age, @gender, @height, @weight, @role)";
+    private const string deleteUserSql = "DELETE FROM Users WHERE Id = @id";
+
+    private async Task<MySqlConnection> GetConnectionAsync()
+    {
+        try
+        {
+            var connection = new MySqlConnection(_connectionString);
+            _logger.LogDebug("Öffne Datenbankverbindung...");
+            await connection.OpenAsync();
+            _logger.LogDebug("Datenbankverbindung erfolgreich geöffnet.");
+            return connection;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Öffnen der Datenbankverbindung.");
+            throw;
+        }
+    }
+
+    public async Task<List<User>> GetUsersAsync()
+    {
+        var users = new List<User>();
+        try
+        {
+            await using var connection = await GetConnectionAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = selectAllUsersSql;
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                users.Add(CreateUserFromReader(reader));
+            }
+            _logger.LogInformation("Erfolgreich {UserCount} Benutzer aus der Datenbank geladen.", users.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Abrufen der Benutzerliste.");
+        }
+        return users;
+    }
+
+    public async Task<User?> GetUserAsync(int id)
+    {
+        try
+        {
+            await using var connection = await GetConnectionAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = selectUserByIdSql;
+            command.Parameters.AddWithValue("@id", id);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                _logger.LogInformation("Benutzer mit ID {UserId} erfolgreich abgerufen.", id);
+                return CreateUserFromReader(reader);
+            }
+            _logger.LogWarning("Kein Benutzer mit ID {UserId} gefunden.", id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Abrufen des Benutzers mit ID {UserId}.", id);
+        }
+        return null;
+    }
+
+    public async Task<int> SaveUserAsync(User user)
+    {
+        try
+        {
+            await using var connection = await GetConnectionAsync();
+            await using var command = connection.CreateCommand();
+            if (user.Id != 0)
+            {
+                command.CommandText = updateUserSql;
+                command.Parameters.AddWithValue("@id", user.Id);
+            }
+            else
+            {
+                command.CommandText = insertUserSql;
+            }
+
+            AddUserParameters(command, user);
+            var result = await command.ExecuteNonQueryAsync();
+
+            if (result > 0)
+            {
+                _logger.LogInformation("Benutzer (ID: {UserId}) erfolgreich gespeichert.", user.Id);
+            }
+            else
+            {
+                _logger.LogWarning("Speicherung des Benutzers (ID: {UserId}) fehlgeschlagen.", user.Id);
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Speichern des Benutzers (ID: {UserId}).", user.Id);
+            return 0;
+        }
+    }
+
+    public async Task<int> DeleteUserAsync(int id)
+    {
+        try
+        {
+            await using var connection = await GetConnectionAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = deleteUserSql;
+            command.Parameters.AddWithValue("@id", id);
+
+            var result = await command.ExecuteNonQueryAsync();
+            if (result > 0)
+            {
+                _logger.LogInformation("Benutzer (ID: {UserId}) erfolgreich gelöscht.", id);
+            }
+            else
+            {
+                _logger.LogWarning("Kein Benutzer mit ID {UserId} zum Löschen gefunden.", id);
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Löschen des Benutzers (ID: {UserId}).", id);
+            return 0;
+        }
+    }
+
+    private User CreateUserFromReader(MySqlDataReader reader)
+    {
+        try
+        {
+            return new User
+            {
+                Id = GetInt(reader, "Id"),
+                Username = GetString(reader, "Username"),
+                Email = GetString(reader, "Email"),
+                PasswordHash = GetString(reader, "PasswordHash"),
+                CurrentComplaint = GetString(reader, "CurrentComplaint", "Keine Beschwerden"),
+                Age = GetNullableInt(reader, "Age"),
+                Gender = GetString(reader, "Gender", "Nicht angegeben"),
+                Height = GetNullableDecimal(reader, "Height"),
+                Weight = GetNullableDecimal(reader, "Weight"),
+                MasterAccountId = GetNullableInt(reader, "MasterAccountId"),
+                Role = Enum.TryParse(GetString(reader, "Role", "Patient"), out UserRole parsedRole)
+                    ? parsedRole
+                    : UserRole.Patient
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Erstellen eines Benutzerobjekts aus dem Reader.");
+            throw;
+        }
+    }
+
+    private void AddUserParameters(MySqlCommand command, User user)
+    {
+        try
+        {
+            command.Parameters.AddWithValue("@username", user.Username);
+            command.Parameters.AddWithValue("@email", user.Email);
+            command.Parameters.AddWithValue("@passwordHash", user.PasswordHash);
+            command.Parameters.AddWithValue("@currentComplaint", user.CurrentComplaint);
+            command.Parameters.AddWithValue("@age", user.Age ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@gender", user.Gender);
+            command.Parameters.AddWithValue("@height", user.Height ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@weight", user.Weight ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@role", user.Role.ToString());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Hinzufügen von Benutzerparametern zum SQL-Befehl.");
+            throw;
+        }
+    }
+
+    private string GetString(MySqlDataReader reader, string columnName, string defaultValue = "")
+    {
+        try
+        {
+            var ordinal = reader.GetOrdinal(columnName);
+            return reader.IsDBNull(ordinal) ? defaultValue : reader.GetString(ordinal);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Abrufen des Strings für die Spalte {ColumnName}.", columnName);
+            return defaultValue;
+        }
+    }
+
+    private static int? GetNullableInt(MySqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetInt32(ordinal);
+    }
+
+    private decimal? GetNullableDecimal(MySqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetDecimal(ordinal);
+    }
+
+    private static int GetInt(MySqlDataReader reader, string columnName, int defaultValue = 0)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? defaultValue : reader.GetInt32(ordinal);
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Data/Interfaces/IInvitationRepository.cs =====
+using HolisticApp.Models;
+
+namespace HolisticApp.Data.Interfaces;
+
+public interface IInvitationRepository
+{
+    Task<Invitation> CreateInvitationAsync(Invitation invitation);
+    Task<Invitation?> GetInvitationByTokenAsync(string token); // Nullable Rückgabetyp
+    Task MarkInvitationAsUsedAsync(int invitationId);
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Data/Interfaces/IUserRepository.cs =====
+using HolisticApp.Models;
+
+namespace HolisticApp.Data.Interfaces;
+
+public interface IUserRepository
+{
+    Task<List<User>> GetUsersAsync();
+    Task<User?> GetUserAsync(int id); // Nullable Rückgabetyp, da kein User gefunden werden kann.
+    Task<int> SaveUserAsync(User user);
+    Task<int> DeleteUserAsync(int id);
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Properties/launchSettings.json =====
+{
+  "profiles": {
+    "Windows Machine": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/AdminDashboardViewModel.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
+using HolisticApp.Constants;
+using HolisticApp.Services.Interfaces;
+
+
+namespace HolisticApp.ViewModels;
+
+public abstract partial class AdminDashboardViewModel : ObservableObject
+{
+    private readonly IUserRepository _userRepository;
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<AdminDashboardViewModel> _logger;
+    [ObservableProperty]
+    private ObservableCollection<User> _doctors;
+    private readonly IUserSession _userSession;
+
+    protected AdminDashboardViewModel(IUserRepository userRepository,
+        INavigationService navigationService,
+        ILogger<AdminDashboardViewModel> logger,
+        IUserSession userSession)
+    {
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession;
+
+        Doctors = [];
+    }
+
+    public string UserInitials => GetInitials(_userSession.CurrentUser?.Username);
+
+    private string GetInitials(string? fullName)
+    {
+        var parts = fullName?.Split(' ');
+        if (parts is { Length: 0 }) return "";
+        if (parts is { Length: 1 }) return parts[0].Substring(0, 1).ToUpper();
+        if (parts != null) return string.Concat(parts.Select(p => p[0])).ToUpper();
+        return "";
+    }
+
+    [RelayCommand]
+    private async Task LoadDoctorsAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Lade alle Benutzer und filtere Doktoren für Admin {AdminId}",
+                    _userSession.CurrentUser.Id);
+            var allUsers = await _userRepository.GetUsersAsync();
+            var doctorList = allUsers.Where(u => u.Role == UserRole.Doctor).ToList();
+
+            Doctors.Clear();
+            foreach (var doctor in doctorList)
+            {
+                Doctors.Add(doctor);
+            }
+            _logger.LogInformation("LoadDoctorsAsync erfolgreich: {Count} Doktoren gefunden.", doctorList.Count);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler in LoadDoctorsAsync für Admin {AdminId}", _userSession.CurrentUser.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task CreateDoctorAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Admin {AdminId} navigiert zur DoctorRegistrationPage.",
+                    _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync(Routes.DoctorRegistrationPage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Navigieren zu DoctorRegistrationPage.");
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenUserMenuAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Admin {AdminId} öffnet das User-Menü.", _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync(Routes.UserMenuPage);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Admin {AdminId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/LoginViewModels.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Constants;
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+
+namespace HolisticApp.ViewModels;
+
+public partial class LoginViewModel(
+    IUserRepository userRepository,
+    INavigationService navigationService,
+    ILogger<LoginViewModel> logger,
+    IUserSession userSession)
+    : ObservableObject
+{
+    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    private readonly INavigationService _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+    private readonly ILogger<LoginViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+    [ObservableProperty]
+    private string _email = string.Empty;
+
+    [ObservableProperty]
+    private string _password = string.Empty;
+
+    [RelayCommand]
+    private async Task LoginAsync()
+    {
+        var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
+        if (currentPage == null)
+        {
+            _logger.LogError("Kein gültiges Fenster gefunden. Login wird abgebrochen.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
+        {
+            await currentPage.DisplayAlert("Fehler", "Bitte Email und Passwort eingeben.", "OK");
+            _logger.LogWarning("Login-Versuch fehlgeschlagen: Email oder Passwort wurden nicht ausgefüllt.");
+            return;
+        }
+
+        _logger.LogInformation("Login-Versuch für Email: {Email} gestartet.", Email);
+        try
+        {
+            var users = await _userRepository.GetUsersAsync();
+            var user = users.FirstOrDefault(u =>
+                u.Email.Equals(Email, StringComparison.OrdinalIgnoreCase) &&
+                u.PasswordHash == Password);
+
+            if (user != null)
+            {
+                Preferences.Set("LoggedInUserId", user.Id);
+                userSession.SetUser(user);
+                _logger.LogInformation("User (ID: {UserId}) hat sich erfolgreich angemeldet.", user.Id);
+
+                switch (user.Role)
+                {
+                    case UserRole.Admin:
+                        await _navigationService.NavigateToAsync(Routes.AdminDashboardPage);
+                        _logger.LogInformation("Navigiere zu AdminDashboardPage.");
+                        break;
+                    case UserRole.Doctor:
+                    {
+                        await _navigationService.NavigateToAsync(Routes.DoctorDashboardPage);
+                        _logger.LogInformation("Navigiere zu DoctorDashboardPage.");
+                        break;
+                    }
+                    default:
+                    {
+                        var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                        if (!anamnesisCompleted)
+                        {
+                            await _navigationService.NavigateToAsync(Routes.AnamnesisPage);
+                            _logger.LogInformation("Navigiere zu AnamnesisPage (Anamnese nicht abgeschlossen).");
+                        }
+                        else
+                        {
+                            await _navigationService.NavigateToAsync(Routes.HomePage);
+                            _logger.LogInformation("Navigiere zu HomePage (Anamnese abgeschlossen).");
+                        }
+
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                await currentPage.DisplayAlert("Fehler", "Ungültige Anmeldedaten.", "OK");
+                _logger.LogWarning("Anmeldeversuch fehlgeschlagen: Keine Übereinstimmung für Email {Email} gefunden.", Email);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Anmeldeprozess für Email: {Email}", Email);
+            await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
+        }
+    }
+
+    [RelayCommand]
+    private async Task RegisterAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Navigiere zur Registrierungsseite.");
+            await _navigationService.NavigateToAsync(Routes.RegistrationPage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Wechsel zur Registrierungsseite.");
+            var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
+            if (currentPage != null)
+            {
+                await currentPage.DisplayAlert("Fehler", "Ein Fehler beim Navigieren ist aufgetreten.", "OK");
+            }
+        }
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/RegistrationVIewModel.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+
+namespace HolisticApp.ViewModels;
+
+public partial class RegistrationViewModel(
+    IUserRepository userRepository,
+    IInvitationRepository invitationRepository,
+    INavigationService navigationService,
+    ILogger<RegistrationViewModel> logger)
+    : ObservableObject
+{
+    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    private readonly IInvitationRepository _invitationRepository = invitationRepository ?? throw new ArgumentNullException(nameof(invitationRepository));
+    private readonly INavigationService _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+    private readonly ILogger<RegistrationViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+    [ObservableProperty]
+    private string _username = string.Empty;
+
+    [ObservableProperty]
+    private string _email = string.Empty;
+
+    [ObservableProperty]
+    private string _password = string.Empty;
+
+    [ObservableProperty]
+    private string _invitationToken = string.Empty;
+
+    [RelayCommand]
+    private async Task RegisterAsync()
+    {
+        var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Username) ||
+                string.IsNullOrWhiteSpace(Email) ||
+                string.IsNullOrWhiteSpace(Password))
+            {
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
+                _logger.LogWarning("Registrierung fehlgeschlagen: Mindestens ein Feld ist leer. (Username: {Username}, Email: {Email})", Username, Email);
+                return;
+            }
+                
+            _logger.LogInformation("Registrierungsversuch für Email: {Email} gestartet.", Email);
+            var user = new User()
+            {
+                Username = Username,
+                Email = Email,
+                PasswordHash = Password
+            };
+
+            if (!string.IsNullOrWhiteSpace(InvitationToken))
+            {
+                _logger.LogDebug("Registrierung mit Einladungstoken: {InvitationToken}", InvitationToken);
+                var invitation = await _invitationRepository.GetInvitationByTokenAsync(InvitationToken);
+                if (invitation == null || invitation.IsUsed || invitation.ExpiresAt < DateTime.Now)
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Fehler", "Ungültiger oder abgelaufener Einladungstoken.", "OK");
+                    _logger.LogWarning("Registrierung fehlgeschlagen: Ungültiger oder abgelaufener Token: {InvitationToken}", InvitationToken);
+                    return;
+                }
+                user.MasterAccountId = invitation.MasterAccountId;
+                user.Role = UserRole.Patient;
+                await _invitationRepository.MarkInvitationAsUsedAsync(invitation.Id);
+                _logger.LogInformation("Einladungstoken {InvitationToken} wurde erfolgreich als verwendet markiert.", InvitationToken);
+            }
+            else
+            {
+                user.Role = UserRole.Patient;
+            }
+
+            var result = await _userRepository.SaveUserAsync(user);
+            if (result > 0)
+            {
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Erfolg", "Benutzer erfolgreich registriert.", "OK");
+                _logger.LogInformation("Registrierung für Email: {Email} erfolgreich abgeschlossen.", Email);
+                await _navigationService.GoBackAsync();
+            }
+            else
+            {
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Fehler beim Registrieren des Benutzers.", "OK");
+                _logger.LogError("Registrierung für Email: {Email} schlug fehl. Keine Zeilen wurden in die DB geschrieben.", Email);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception während der Registrierung für Email: {Email}", Email);
+            if (currentPage != null)
+                await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
+        }
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/DoctorDashboardVIewModel.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
+using HolisticApp.Constants;
+using HolisticApp.Services.Interfaces;
+
+namespace HolisticApp.ViewModels;
+
+public partial class DoctorDashboardViewModel : ObservableObject
+{
+    private readonly IUserRepository _userRepository;
+    private readonly IInvitationRepository _invitationRepository;
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<DoctorDashboardViewModel> _logger;
+    [ObservableProperty]
+    private ObservableCollection<User> _patients;
+    [ObservableProperty]
+    private string _generatedInvitationLink = string.Empty;
+    private readonly IUserSession _userSession;
+
+    public DoctorDashboardViewModel(IUserRepository userRepository,
+        IInvitationRepository invitationRepository,
+        INavigationService navigationService,
+        ILogger<DoctorDashboardViewModel> logger, 
+        IUserSession userSession)
+    {
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _invitationRepository = invitationRepository ?? throw new ArgumentNullException(nameof(invitationRepository));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession;
+
+        Patients = [];
+        GeneratedInvitationLink = string.Empty;
+    }
+
+    public string UserInitials => GetInitials(_userSession.CurrentUser?.Username);
+
+    private string GetInitials(string? fullName)
+    {
+        var parts = fullName?.Split(' ');
+        if (parts is { Length: 0 })
+            return string.Empty;
+        if (parts is { Length: 1 })
+            return parts[0].Substring(0, 1).ToUpper();
+        if (parts != null) return string.Concat(parts.Select(p => p[0])).ToUpper();
+        return string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task GenerateInvitationAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+            {
+                _logger.LogInformation("Doktor {DoctorId} erstellt Einladungstoken.", _userSession.CurrentUser.Id);
+
+                var token = Guid.NewGuid().ToString();
+                var invitation = new Invitation
+                {
+                    Token = token,
+                    MasterAccountId = _userSession.CurrentUser.Id,
+                    CreatedAt = DateTime.Now,
+                    ExpiresAt = DateTime.Now.AddDays(7),
+                    IsUsed = false
+                };
+
+                await _invitationRepository.CreateInvitationAsync(invitation);
+                GeneratedInvitationLink = $"https://yourapp.com/register?token={token}";
+            }
+
+            _logger.LogInformation("Einladungstoken erfolgreich erstellt: {Link}", GeneratedInvitationLink);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler in GenerateInvitationAsync für Doktor {DoctorId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadPatientsAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+            {
+                _logger.LogInformation("Doktor {DoctorId} lädt Patientenliste.", _userSession.CurrentUser.Id);
+                var allUsers = await _userRepository.GetUsersAsync();
+                var patientsList = allUsers
+                    .Where(u => u.Role == UserRole.Patient && u.MasterAccountId == _userSession.CurrentUser.Id)
+                    .ToList();
+
+                Patients.Clear();
+                foreach (var patient in patientsList)
+                {
+                    Patients.Add(patient);
+                }
+
+                _logger.LogInformation("LoadPatientsAsync erfolgreich: {Count} Patienten gefunden.",
+                    patientsList.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler in LoadPatientsAsync für Doktor {DoctorId}", _userSession.CurrentUser.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenPatientDetailsAsync(User? patient)
+    {
+        try
+        {
+            if (patient != null)
+            {
+                if (_userSession.CurrentUser != null)
+                    _logger.LogInformation("Doktor {DoctorId} öffnet PatientDetailPage für Patient {PatientId}",
+                        _userSession.CurrentUser.Id, patient.Id);
+                await _navigationService.NavigateToAsync(Routes.PatientDetailPage);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen der PatientDetailPage für Doktor {DoctorId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenUserMenuAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Doktor {DoctorId} öffnet das User-Menü.", _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync(Routes.UserMenuPage);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Doktor {DoctorId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/DoctorRegistrationViewModel.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Models;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+
+namespace HolisticApp.ViewModels;
+
+public partial class DoctorRegistrationViewModel(
+    IUserRepository userRepository,
+    INavigationService navigationService,
+    ILogger<DoctorRegistrationViewModel> logger)
+    : ObservableObject
+{
+    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    private readonly INavigationService _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+    private readonly ILogger<DoctorRegistrationViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+    [ObservableProperty] private string _username = string.Empty;
+    [ObservableProperty] private string _email = string.Empty;
+    [ObservableProperty] private string _password = string.Empty;
+
+    [RelayCommand]
+    private async Task RegisterAsync()
+    {
+        var currentPage = Application.Current?.Windows[0].Page;
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Username) ||
+                string.IsNullOrWhiteSpace(Email) ||
+                string.IsNullOrWhiteSpace(Password))
+            {
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
+                _logger.LogWarning("DoctorRegistration fehlgeschlagen: Ein oder mehrere Felder sind leer.");
+                return;
+            }
+
+            var doctor = new User
+            {
+                Username = Username,
+                Email = Email,
+                PasswordHash = Password, // In Produktion: PW hashen!
+                Role = UserRole.Doctor,
+                MasterAccountId = null
+            };
+
+            _logger.LogInformation("Versuche, Doktor {Name} zu registrieren.", Username);
+            var result = await _userRepository.SaveUserAsync(doctor);
+            if (result > 0)
+            {
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Erfolg", "Doktor erfolgreich registriert.", "OK");
+                _logger.LogInformation("Doktor {Name} wurde erfolgreich registriert.", Username);
+                await _navigationService.GoBackAsync();
+            }
+            else
+            {
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Fehler beim Registrieren des Doktors.", "OK");
+                _logger.LogError("Fehler beim Registrieren von Doktor {Name}.", Username);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unerwarteter Fehler bei der Doktor-Registrierung für {Name}.", Username);
+            if (currentPage != null)
+                await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
+        }
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/HomeViewModel.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Constants;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+
+namespace HolisticApp.ViewModels;
+
+public partial class HomeViewModel : ObservableObject
+{
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<HomeViewModel> _logger;
+    private readonly IUserSession _userSession;
+    [ObservableProperty]
+    private string _userInitials = string.Empty;
+
+    public HomeViewModel(INavigationService navigationService,
+        ILogger<HomeViewModel> logger, IUserSession userSession)
+    {
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession;
+
+        // Initialisierung
+        UserInitials = !string.IsNullOrWhiteSpace(_userSession.CurrentUser?.Username)
+            ? _userSession.CurrentUser.Username[..1].ToUpper()
+            : string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task OpenAnamnesisAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Öffne AnamnesisPage für User {UserId}", _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync("///AnamnesisPage");
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen der AnamnesisPage für User {UserId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task OpenUserMenuAsync()
+    {
+        try
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Öffne UserMenuPage für User {UserId}", _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync(Routes.UserMenuPage);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für User {UserId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/AnamnesisViewModel.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Constants;
+using HolisticApp.Data.Interfaces;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+
+namespace HolisticApp.ViewModels;
+
+public partial class AnamnesisViewModel : ObservableObject
+{
+    private readonly IUserRepository _userRepository;
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<AnamnesisViewModel> _logger;
+    private readonly IUserSession _userSession;
+    
+    [ObservableProperty]
+    private string _age = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedGender = string.Empty;
+
+    [ObservableProperty]
+    private string _height = string.Empty;
+
+    [ObservableProperty]
+    private string _weight = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasComplaint;
+
+    [ObservableProperty]
+    private string _selectedComplaint = string.Empty;
+
+    [ObservableProperty]
+    private double _severity = 1;
+
+    public string[] GenderOptions { get; } = ["Männlich", "Weiblich", "Divers"];
+    public string[] ComplaintOptions { get; } = ["Verdauungsbeschwerden", "Kopfschmerzen", "Rückenschmerzen"];
+
+    public AnamnesisViewModel(IUserRepository userRepository,
+        INavigationService navigationService,
+        ILogger<AnamnesisViewModel> logger, IUserSession userSession)
+    {
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession;
+
+        // Fülle die Felder mit aktuellen User-Daten
+        if (_userSession.CurrentUser is { Age: not null }) _age = _userSession.CurrentUser.Age.Value.ToString();
+        SelectedGender = string.IsNullOrEmpty(_userSession.CurrentUser?.Gender) ? GenderOptions[0] : _userSession.CurrentUser.Gender;
+        if (_userSession.CurrentUser != null)
+        {
+            Height = _userSession.CurrentUser.Height?.ToString() ?? string.Empty;
+            Weight = _userSession.CurrentUser.Weight?.ToString() ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(_userSession.CurrentUser.CurrentComplaint) &&
+                _userSession.CurrentUser.CurrentComplaint != "Keine Beschwerden")
+            {
+                _hasComplaint = true;
+                var parts = _userSession.CurrentUser.CurrentComplaint.Split(" (Stärke: ");
+                SelectedComplaint = parts[0];
+                if (parts.Length > 1 && parts[1].EndsWith("/10)"))
+                {
+                    var severityStr = parts[1].Replace("/10)", "");
+                    if (double.TryParse(severityStr, out var parsedSeverity))
+                        _severity = parsedSeverity;
+                }
+            }
+        }
+    }
+    
+    [RelayCommand]
+    private async Task ReturnAsync()
+    {
+        await _navigationService.GoBackAsync();
+    }
+
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        var currentPage = Application.Current?.Windows[0].Page;
+        try
+        {
+            if (_userSession.CurrentUser != null)
+            {
+                if (int.TryParse(Age, out var parsedAge))
+                {
+                    _userSession.CurrentUser.Age = parsedAge;
+                }
+                _userSession.CurrentUser.Gender = SelectedGender;
+
+                if (decimal.TryParse(Height, out var parsedHeight))
+                    _userSession.CurrentUser.Height = parsedHeight;
+                else
+                    _userSession.CurrentUser.Height = null;
+
+                if (decimal.TryParse(Weight, out var parsedWeight))
+                    _userSession.CurrentUser.Weight = parsedWeight;
+                else
+                    _userSession.CurrentUser.Weight = null;
+
+                if (HasComplaint)
+                {
+                    if (string.IsNullOrEmpty(SelectedComplaint))
+                    {
+                        if (currentPage != null)
+                            await currentPage.DisplayAlert("Fehler", "Bitte wählen Sie eine Beschwerde aus.", "OK");
+                        _logger.LogWarning("Anamnese konnte nicht gespeichert werden (keine Beschwerde ausgewählt).");
+                        return;
+                    }
+
+                    _userSession.CurrentUser.CurrentComplaint = $"{SelectedComplaint} (Stärke: {Severity}/10)";
+                }
+                else
+                    _userSession.CurrentUser.CurrentComplaint = "Keine Beschwerden";
+            }
+            else
+            {
+                _logger.LogInformation("User konnte nicht gefunden werden.");
+                await currentPage?.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK")!;
+            }
+
+            if (_userSession.CurrentUser != null)
+            {
+                _logger.LogInformation("Speichere Anamnese-Infos für User {UserId}", _userSession.CurrentUser.Id);
+                var result = await _userRepository.SaveUserAsync(_userSession.CurrentUser);
+                if (result > 0)
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
+                    Preferences.Set($"AnamnesisCompleted_{_userSession.CurrentUser.Id}", true);
+
+                    _logger.LogInformation("Anamnese erfolgreich gespeichert für User {UserId}. Navigiere HomePage.",
+                        _userSession.CurrentUser.Id);
+                    await _navigationService.NavigateToAsync(Routes.HomePage);
+                }
+                else
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK");
+                    _logger.LogError("Anamnese: Fehler beim Speichern in DB für User {UserId}.",
+                        _userSession.CurrentUser.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            int userId;
+            if (_userSession.CurrentUser == null)
+                userId = -1;
+            else
+                userId = _userSession.CurrentUser.Id;
+            _logger.LogError(ex, "Unerwarteter Fehler beim Speichern der Anamnese für User {UserId}.",
+                    userId);
+            if (currentPage != null)
+                await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
+        }
+    }
+}
+
+
+===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/UserMenuViewModel.cs =====
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
+
+namespace HolisticApp.ViewModels;
+
+public partial class UserMenuViewModel : ObservableObject
+{
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<UserMenuViewModel> _logger;
+    private readonly IUserSession _userSession;
+    [ObservableProperty] 
+    private string? _username;
+    
+    public UserMenuViewModel(
+        INavigationService navigationService,
+        ILogger<UserMenuViewModel> logger,
+        IUserSession userSession)
+    {
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession ?? throw new ArgumentNullException(nameof(userSession));
+        _username = _userSession.CurrentUser?.Username;
+        
+        if (userSession.CurrentUser == null)
+        {
+            throw new InvalidOperationException("Kein angemeldeter Benutzer gefunden!");
+        } 
+        
+        // Initialisierung auf dem Hauptthread ausführen
+        MainThread.InvokeOnMainThreadAsync(InitializeAsync);
+    }
+
+    private async Task InitializeAsync()
+    {
+        try
+        {
+            _logger.LogInformation("UserMenuViewModel wird initialisiert...");
+            await Task.Delay(500).ConfigureAwait(false);
+            _logger.LogInformation("Initialisierung abgeschlossen.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler bei der Initialisierung von UserMenuViewModel.");
+        }
+    }
+    
+    [RelayCommand]
+    private async Task ReturnAsync()
+    {
+        await _navigationService.GoBackAsync();
+    }
+
+    [RelayCommand]
+    private async Task OpenSettingsAsync()
+    {
+        try
+        {
+            var window = Application.Current?.Windows.FirstOrDefault();
+            if (window?.Page != null)
+            {
+                await window.Page.DisplayAlert("Einstellungen", "Hier können Sie die Einstellungen öffnen.", "OK");
+            }
+
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("User {UserId} öffnet die Einstellungen.", _userSession.CurrentUser.Id);
+            await _navigationService.GoBackAsync();
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen der Einstellungen für User {UserId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task LogoutAsync()
+    {
+        try
+        {
+            Preferences.Remove("LoggedInUserId");
+            await Shell.Current.GoToAsync("//LoginPage");
+            _userSession.ClearUser();
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("User {UserId} hat sich ausgeloggt.", _userSession.CurrentUser.Id);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Logout für User {UserId}", _userSession.CurrentUser.Id);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowInfoAsync()
+    {
+        try
+        {
+            var user = _userSession.CurrentUser;
+            var complaintInfo = string.IsNullOrEmpty(user?.CurrentComplaint) || user.CurrentComplaint == "Keine Beschwerden"
+                ? "Aktuell keine Beschwerden gespeichert."
+                : $"Aktuelle Beschwerde: {user.CurrentComplaint}";
+
+            var ageInfo = user is { Age: not null } ? $"Alter: {user.Age} Jahre" : "Alter: Nicht angegeben";
+            var genderInfo = !string.IsNullOrEmpty(user?.Gender) ? $"Geschlecht: {user.Gender}" : "Geschlecht: Nicht angegeben";
+            var heightInfo = user is { Height: not null } ? $"Größe: {user.Height} cm" : "Größe: Nicht angegeben";
+            var weightInfo = user is { Weight: not null } ? $"Gewicht: {user.Weight} kg" : "Gewicht: Nicht angegeben";
+
+            var infoText = $"{ageInfo}\n{genderInfo}\n{heightInfo}\n{weightInfo}\n\n{complaintInfo}";
+
+            var window = Application.Current?.Windows.FirstOrDefault();
+            if (window?.Page != null)
+            {
+                await window.Page.DisplayAlert("Benutzer-Info", infoText, "OK");
+            }
+
+            if (user != null) _logger.LogInformation("User {UserId} ruft sein Info-Fenster auf.", user.Id);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Anzeigen der Benutzer-Info für User {UserId}",
+                    _userSession.CurrentUser.Id);
+        }
+    }
+}
+
+

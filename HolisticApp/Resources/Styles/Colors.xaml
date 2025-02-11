@@ -1,8 +1,19 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
-<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
-    <Color x:Key="PrimaryColor">#4A90E2</Color>
-    <Color x:Key="SecondaryColor">#50E3C2</Color>
-    <Color x:Key="BackgroundColor">#F5F5F5</Color>
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Elegante Farbdefinitionen -->
+    <!-- Primärfarbe: Klassisches Schwarz -->
+    <Color x:Key="PrimaryColor">#000000</Color>
+    <!-- Sekundärfarbe: Reines Weiß -->
+    <Color x:Key="SecondaryColor">#FFFFFF</Color>
+    <!-- Akzentfarbe: Mittelgrau -->
+    <Color x:Key="AccentColor">#808080</Color>
+    <!-- Hintergrund: Sehr helles Grau -->
+    <Color x:Key="BackgroundColor">#FAFAFA</Color>
     <Color x:Key="TextColor">#333333</Color>
+    <!-- Rahmenfarbe: Helles Grau -->
+    <Color x:Key="BorderColor">#CCCCCC</Color>
+
 </ResourceDictionary>
