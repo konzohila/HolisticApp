@@ -4,46 +4,43 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
     x:Class="HolisticApp.Views.AnamnesisPage"
+    x:DataType="viewmodels:AnamnesisViewModel"
     Title="Anamnese"
     BackgroundColor="{StaticResource BackgroundColor}">
     
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zurück" 
+                     IconImageSource="back_icon.png"
+                     Order="Primary"
+                     Priority="0"
+                     Command="{Binding ReturnCommand}" />
+    </ContentPage.ToolbarItems>
+    
     <ScrollView>
         <StackLayout Padding="20" Spacing="20">
-            <!-- Alter -->
             <Label Text="Alter (Jahre):" />
             <Entry Text="{Binding Age}" Placeholder="Alter eingeben" Keyboard="Numeric" />
-    
-            <!-- Geschlecht -->
             <Label Text="Geschlecht:" />
             <Picker ItemsSource="{Binding GenderOptions}" 
                     SelectedItem="{Binding SelectedGender}" 
                     Title="Wähle dein Geschlecht" />
-    
-            <!-- Größe -->
             <Label Text="Größe (cm):" />
             <Entry Text="{Binding Height}" Placeholder="Größe eingeben" Keyboard="Numeric" />
-    
-            <!-- Gewicht -->
             <Label Text="Gewicht (kg):" />
             <Entry Text="{Binding Weight}" Placeholder="Gewicht eingeben" Keyboard="Numeric" />
-    
-            <!-- Beschwerden -->
             <StackLayout Orientation="Horizontal" VerticalOptions="Center">
                 <Label Text="Aktuelle Beschwerden:" VerticalOptions="Center"/>
                 <Switch IsToggled="{Binding HasComplaint}" VerticalOptions="Center" Margin="10,0"/>
             </StackLayout>
-    
             <Label Text="Beschwerde auswählen:" IsVisible="{Binding HasComplaint}" />
             <Picker ItemsSource="{Binding ComplaintOptions}" 
                     SelectedItem="{Binding SelectedComplaint}" 
                     Title="Wähle eine Beschwerde" IsVisible="{Binding HasComplaint}" />
-    
             <Label Text="{Binding Severity, StringFormat=Stärke der Beschwerden: {0}}" 
                    IsVisible="{Binding HasComplaint}" />
             <Stepper Minimum="1" Maximum="10" Increment="1" 
                      Value="{Binding Severity}" 
                      IsVisible="{Binding HasComplaint}" />
-    
             <Button Text="Speichern" Command="{Binding SaveCommand}" />
         </StackLayout>
     </ScrollView>

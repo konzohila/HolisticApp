@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
     x:Class="HolisticApp.Views.HomePage"
+    x:DataType="viewmodels:HomeViewModel"
     Title="Übersicht"
     BackgroundColor="{StaticResource BackgroundColor}">
     
