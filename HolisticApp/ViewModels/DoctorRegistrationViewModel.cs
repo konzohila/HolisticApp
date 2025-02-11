@@ -22,9 +22,9 @@ public partial class DoctorRegistrationViewModel(
     [ObservableProperty] private string _password = string.Empty;
 
     [RelayCommand]
-    public async Task RegisterAsync()
+    private async Task RegisterAsync()
     {
-        var currentPage = Application.Current?.Windows?[0]?.Page;
+        var currentPage = Application.Current?.Windows[0].Page;
         try
         {
             if (string.IsNullOrWhiteSpace(Username) ||

@@ -19,10 +19,10 @@ public class User(
     decimal? weight = null,
     int? masterAccountId = null)
 {
-    public int Id { get; set; }
+    public int Id { get; init; }
     public string? Username { get; set; } = username;
     public string Email { get; set; } = email;
-    public string PasswordHash { get; set; } = passwordHash;
+    public string PasswordHash { get; init; } = passwordHash;
     public string CurrentComplaint { get; set; } = currentComplaint;
     public string Gender { get; set; } = gender;
 

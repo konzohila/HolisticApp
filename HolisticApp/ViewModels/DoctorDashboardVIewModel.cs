@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
-using HolisticApp.Views;
 using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using HolisticApp.Constants;
@@ -38,104 +37,117 @@ public partial class DoctorDashboardViewModel : ObservableObject
         GeneratedInvitationLink = string.Empty;
     }
 
-    public string UserInitials => GetInitials(_userSession.CurrentUser.Username);
+    public string UserInitials => GetInitials(_userSession.CurrentUser?.Username);
 
     private string GetInitials(string? fullName)
     {
-        var parts = fullName.Split(' ');
-        if (parts.Length == 0)
+        var parts = fullName?.Split(' ');
+        if (parts is { Length: 0 })
             return string.Empty;
-        if (parts.Length == 1)
+        if (parts is { Length: 1 })
             return parts[0].Substring(0, 1).ToUpper();
-        return string.Concat(parts.Select(p => p[0])).ToUpper();
+        if (parts != null) return string.Concat(parts.Select(p => p[0])).ToUpper();
+        return string.Empty;
     }
 
     [RelayCommand]
-    public async Task GenerateInvitationAsync()
+    private async Task GenerateInvitationAsync()
     {
         try
         {
-            _logger.LogInformation("Doktor {DoctorId} erstellt Einladungstoken.", _userSession.CurrentUser.Id);
-
-            var token = Guid.NewGuid().ToString();
-            var invitation = new Invitation
+            if (_userSession.CurrentUser != null)
             {
-                Token = token,
-                MasterAccountId = _userSession.CurrentUser.Id,
-                CreatedAt = DateTime.Now,
-                ExpiresAt = DateTime.Now.AddDays(7),
-                IsUsed = false
-            };
+                _logger.LogInformation("Doktor {DoctorId} erstellt Einladungstoken.", _userSession.CurrentUser.Id);
 
-            await _invitationRepository.CreateInvitationAsync(invitation);
-            GeneratedInvitationLink = $"https://yourapp.com/register?token={token}";
+                var token = Guid.NewGuid().ToString();
+                var invitation = new Invitation
+                {
+                    Token = token,
+                    MasterAccountId = _userSession.CurrentUser.Id,
+                    CreatedAt = DateTime.Now,
+                    ExpiresAt = DateTime.Now.AddDays(7),
+                    IsUsed = false
+                };
+
+                await _invitationRepository.CreateInvitationAsync(invitation);
+                GeneratedInvitationLink = $"https://yourapp.com/register?token={token}";
+            }
 
             _logger.LogInformation("Einladungstoken erfolgreich erstellt: {Link}", GeneratedInvitationLink);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler in GenerateInvitationAsync für Doktor {DoctorId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler in GenerateInvitationAsync für Doktor {DoctorId}",
+                    _userSession.CurrentUser.Id);
         }
     }
 
     [RelayCommand]
-    public async Task LoadPatientsAsync()
+    private async Task LoadPatientsAsync()
     {
         try
         {
-            _logger.LogInformation("Doktor {DoctorId} lädt Patientenliste.", _userSession.CurrentUser.Id);
-            var allUsers = await _userRepository.GetUsersAsync();
-            var patientsList = allUsers
-                .Where(u => u.Role == UserRole.Patient && u.MasterAccountId == _userSession.CurrentUser.Id)
-                .ToList();
-
-            Patients.Clear();
-            foreach (var patient in patientsList)
+            if (_userSession.CurrentUser != null)
             {
-                Patients.Add(patient);
+                _logger.LogInformation("Doktor {DoctorId} lädt Patientenliste.", _userSession.CurrentUser.Id);
+                var allUsers = await _userRepository.GetUsersAsync();
+                var patientsList = allUsers
+                    .Where(u => u.Role == UserRole.Patient && u.MasterAccountId == _userSession.CurrentUser.Id)
+                    .ToList();
+
+                Patients.Clear();
+                foreach (var patient in patientsList)
+                {
+                    Patients.Add(patient);
+                }
+
+                _logger.LogInformation("LoadPatientsAsync erfolgreich: {Count} Patienten gefunden.",
+                    patientsList.Count);
             }
-            _logger.LogInformation("LoadPatientsAsync erfolgreich: {Count} Patienten gefunden.", patientsList.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler in LoadPatientsAsync für Doktor {DoctorId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler in LoadPatientsAsync für Doktor {DoctorId}", _userSession.CurrentUser.Id);
         }
     }
 
     [RelayCommand]
-    public async Task OpenPatientDetailsAsync(User? patient)
+    private async Task OpenPatientDetailsAsync(User? patient)
     {
         try
         {
             if (patient != null)
             {
-                _logger.LogInformation("Doktor {DoctorId} öffnet PatientDetailPage für Patient {PatientId}",
-                    _userSession.CurrentUser.Id, patient.Id);
+                if (_userSession.CurrentUser != null)
+                    _logger.LogInformation("Doktor {DoctorId} öffnet PatientDetailPage für Patient {PatientId}",
+                        _userSession.CurrentUser.Id, patient.Id);
                 await _navigationService.NavigateToAsync(Routes.PatientDetailPage);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Öffnen der PatientDetailPage für Doktor {DoctorId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen der PatientDetailPage für Doktor {DoctorId}",
+                    _userSession.CurrentUser.Id);
         }
     }
 
     [RelayCommand]
-    public async Task OpenUserMenuAsync()
+    private async Task OpenUserMenuAsync()
     {
         try
         {
-            _logger.LogInformation("Doktor {DoctorId} öffnet das User-Menü.", _userSession.CurrentUser.Id);
-            var services = Application.Current?.Handler?.MauiContext?.Services;
-            if (services != null)
-            {
-                var userMenuPage = services.GetRequiredService<UserMenuPage>();
-                await _navigationService.NavigateToAsync(Routes.UserMenuPage);
-            }
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Doktor {DoctorId} öffnet das User-Menü.", _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync(Routes.UserMenuPage);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Doktor {DoctorId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Doktor {DoctorId}",
+                    _userSession.CurrentUser.Id);
         }
     }
 }

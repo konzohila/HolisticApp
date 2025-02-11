@@ -22,36 +22,42 @@ public partial class HomeViewModel : ObservableObject
         _userSession = userSession;
 
         // Initialisierung
-        UserInitials = !string.IsNullOrWhiteSpace(_userSession.CurrentUser.Username)
+        UserInitials = !string.IsNullOrWhiteSpace(_userSession.CurrentUser?.Username)
             ? _userSession.CurrentUser.Username[..1].ToUpper()
             : string.Empty;
     }
 
     [RelayCommand]
-    public async Task OpenAnamnesisAsync()
+    private async Task OpenAnamnesisAsync()
     {
         try
         {
-            _logger.LogInformation("Öffne AnamnesisPage für User {UserId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Öffne AnamnesisPage für User {UserId}", _userSession.CurrentUser.Id);
             await _navigationService.NavigateToAsync("///AnamnesisPage");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Öffnen der AnamnesisPage für User {UserId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen der AnamnesisPage für User {UserId}",
+                    _userSession.CurrentUser.Id);
         }
     }
 
     [RelayCommand]
-    public async Task OpenUserMenuAsync()
+    private async Task OpenUserMenuAsync()
     {
         try
         {
-            _logger.LogInformation("Öffne UserMenuPage für User {UserId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Öffne UserMenuPage für User {UserId}", _userSession.CurrentUser.Id);
             await _navigationService.NavigateToAsync(Routes.UserMenuPage);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für User {UserId}", _userSession.CurrentUser.Id);
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für User {UserId}",
+                    _userSession.CurrentUser.Id);
         }
     }
 }

@@ -36,14 +36,15 @@ public abstract partial class AdminDashboardViewModel : ObservableObject
 
     private string GetInitials(string? fullName)
     {
-        var parts = fullName.Split(' ');
-        if (parts.Length == 0) return "";
-        if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpper();
-        return string.Concat(parts.Select(p => p[0])).ToUpper();
+        var parts = fullName?.Split(' ');
+        if (parts is { Length: 0 }) return "";
+        if (parts is { Length: 1 }) return parts[0].Substring(0, 1).ToUpper();
+        if (parts != null) return string.Concat(parts.Select(p => p[0])).ToUpper();
+        return "";
     }
 
     [RelayCommand]
-    public async Task LoadDoctorsAsync()
+    private async Task LoadDoctorsAsync()
     {
         try
         {
@@ -84,7 +85,7 @@ public abstract partial class AdminDashboardViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task OpenUserMenuAsync()
+    private async Task OpenUserMenuAsync()
     {
         try
         {

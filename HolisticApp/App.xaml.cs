@@ -4,11 +4,12 @@ using Microsoft.Extensions.Logging;
 
 namespace HolisticApp;
 
-public partial class App : Application
+public partial class App
 {
     private readonly IUserRepository _userRepository;
     private readonly ILogger<App> _logger;
 
+    [Obsolete("Obsolete")]
     public App(IUserRepository userRepository, ILogger<App> logger)
     {
         InitializeComponent();
