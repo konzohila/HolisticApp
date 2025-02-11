@@ -3,6 +3,15 @@ using HolisticApp.ViewModels;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
+#if ANDROID
+using Android.App;
+using Android.Content;
+#endif
+
+#if MACCATALYST
+using Foundation;
+#endif
+
 namespace HolisticApp;
 
 public static class MauiProgram
@@ -11,7 +20,8 @@ public static class MauiProgram
     {
         try
         {
-            // Log-Datei einrichten
+            #if ANDROID
+            // Log-Datei für Android einrichten
             var externalFilesDir = Android.App.Application.Context.GetExternalFilesDir(null)?.AbsolutePath;
             if (string.IsNullOrEmpty(externalFilesDir))
             {
@@ -21,11 +31,24 @@ public static class MauiProgram
             var logDirectory = Path.Combine(externalFilesDir, "HolisticAppLogs");
             Directory.CreateDirectory(logDirectory);
             var logFilePath = Path.Combine(logDirectory, "app.log");
+            #endif
+
+            #if MACCATALYST
+            // Log-Datei für macOS einrichten
+            var libraryPath = NSFileManager.DefaultManager.GetUrls(NSSearchPathDirectory.LibraryDirectory, NSSearchPathDomain.User)[0].Path;
+            var macLogDirectory = Path.Combine(libraryPath, "HolisticAppLogs");
+            Directory.CreateDirectory(macLogDirectory);
+            var macLogFilePath = Path.Combine(macLogDirectory, "app.log");
+            #endif
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.File(
+                    #if ANDROID
                     logFilePath,
+                    #elif MACCATALYST
+                    macLogFilePath,
+                    #endif
                     rollingInterval: RollingInterval.Day,
                     retainedFileCountLimit: 7,
                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
@@ -41,8 +64,12 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .ConfigureFonts(fonts =>
             {
+                #if MACCATALYST
+                fonts.AddFont("Helvetica", "SystemFont");
+                #else
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                #endif
             });
 
         // Logging konfigurieren
@@ -63,13 +90,12 @@ public static class MauiProgram
             }
             return navService;
         });
-        
-        // Registriere den NavigationService als Singleton (da Shell.Current stets verfügbar ist)
+
         builder.Services.AddSingleton<INavigationService, Services.NavigationService>();
 
         // **Datenbankverbindung initialisieren**
         var connectionString = "Server=database-1.cjs4qmoaa9sv.eu-central-1.rds.amazonaws.com;Database=holisticapp;User=admin;Password=pwpwpwpw;";
-            
+
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             Log.Error("Die Verbindungszeichenfolge für die Datenbank ist leer oder null.");
