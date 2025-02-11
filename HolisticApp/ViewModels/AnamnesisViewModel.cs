@@ -70,6 +70,12 @@ public partial class AnamnesisViewModel : ObservableObject
             }
         }
     }
+    
+    [RelayCommand]
+    private async Task ReturnAsync()
+    {
+        await _navigationService.GoBackAsync();
+    }
 
     [RelayCommand]
     private async Task SaveAsync()
@@ -77,14 +83,12 @@ public partial class AnamnesisViewModel : ObservableObject
         var currentPage = Application.Current?.Windows[0].Page;
         try
         {
-            if (int.TryParse(Age, out var parsedAge))
-            {
-                if (_userSession.CurrentUser != null) _userSession.CurrentUser.Age = parsedAge;
-            }
-            else if (_userSession.CurrentUser != null) _userSession.CurrentUser.Age = null;
-
             if (_userSession.CurrentUser != null)
             {
+                if (int.TryParse(Age, out var parsedAge))
+                {
+                    _userSession.CurrentUser.Age = parsedAge;
+                }
                 _userSession.CurrentUser.Gender = SelectedGender;
 
                 if (decimal.TryParse(Height, out var parsedHeight))
@@ -110,10 +114,16 @@ public partial class AnamnesisViewModel : ObservableObject
                     _userSession.CurrentUser.CurrentComplaint = $"{SelectedComplaint} (Stärke: {Severity}/10)";
                 }
                 else
-                {
                     _userSession.CurrentUser.CurrentComplaint = "Keine Beschwerden";
-                }
+            }
+            else
+            {
+                _logger.LogInformation("User konnte nicht gefunden werden.");
+                await currentPage?.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK")!;
+            }
 
+            if (_userSession.CurrentUser != null)
+            {
                 _logger.LogInformation("Speichere Anamnese-Infos für User {UserId}", _userSession.CurrentUser.Id);
                 var result = await _userRepository.SaveUserAsync(_userSession.CurrentUser);
                 if (result > 0)
@@ -124,7 +134,7 @@ public partial class AnamnesisViewModel : ObservableObject
 
                     _logger.LogInformation("Anamnese erfolgreich gespeichert für User {UserId}. Navigiere HomePage.",
                         _userSession.CurrentUser.Id);
-                            await _navigationService.NavigateToAsync(Routes.HomePage);
+                    await _navigationService.NavigateToAsync(Routes.HomePage);
                 }
                 else
                 {
@@ -137,9 +147,13 @@ public partial class AnamnesisViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            if (_userSession.CurrentUser != null)
-                _logger.LogError(ex, "Unerwarteter Fehler beim Speichern der Anamnese für User {UserId}.",
-                    _userSession.CurrentUser.Id);
+            int userId;
+            if (_userSession.CurrentUser == null)
+                userId = -1;
+            else
+                userId = _userSession.CurrentUser.Id;
+            _logger.LogError(ex, "Unerwarteter Fehler beim Speichern der Anamnese für User {UserId}.",
+                    userId);
             if (currentPage != null)
                 await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
         }

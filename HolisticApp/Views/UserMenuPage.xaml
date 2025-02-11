@@ -8,8 +8,16 @@
     Title="Benutzermenü"
     BackgroundColor="{StaticResource BackgroundColor}">
     
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zurück" 
+                     IconImageSource="back_icon.png"
+                     Order="Primary"
+                     Priority="0"
+                     Command="{Binding ReturnCommand}" />
+    </ContentPage.ToolbarItems>
+    
     <StackLayout Padding="20" Spacing="15">
-        <Label Text="{Binding CurrentUser.Username}" 
+        <Label Text="{Binding Username}" 
                FontAttributes="Bold" 
                FontSize="Large" />
         <Button Text="Info" Command="{Binding ShowInfoCommand}" />

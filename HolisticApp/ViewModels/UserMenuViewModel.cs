@@ -10,6 +10,8 @@ public partial class UserMenuViewModel : ObservableObject
     private readonly INavigationService _navigationService;
     private readonly ILogger<UserMenuViewModel> _logger;
     private readonly IUserSession _userSession;
+    [ObservableProperty] 
+    private string? _username;
     
     public UserMenuViewModel(
         INavigationService navigationService,
@@ -19,6 +21,7 @@ public partial class UserMenuViewModel : ObservableObject
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _userSession = userSession ?? throw new ArgumentNullException(nameof(userSession));
+        _username = _userSession.CurrentUser?.Username;
         
         if (userSession.CurrentUser == null)
         {
@@ -41,6 +44,12 @@ public partial class UserMenuViewModel : ObservableObject
         {
             _logger.LogError(ex, "Fehler bei der Initialisierung von UserMenuViewModel.");
         }
+    }
+    
+    [RelayCommand]
+    private async Task ReturnAsync()
+    {
+        await _navigationService.GoBackAsync();
     }
 
     [RelayCommand]

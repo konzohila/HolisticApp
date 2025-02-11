@@ -1,5 +1,7 @@
 ﻿using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace HolisticApp;
@@ -8,13 +10,15 @@ public partial class App
 {
     private readonly IUserRepository _userRepository;
     private readonly ILogger<App> _logger;
+    private readonly IUserSession _userSession;
 
     [Obsolete("Obsolete")]
-    public App(IUserRepository userRepository, ILogger<App> logger)
+    public App(IUserRepository userRepository, ILogger<App> logger, IUserSession userSession)
     {
         InitializeComponent();
         _userRepository = userRepository;
         _logger = logger;
+        _userSession = userSession;
         _logger.LogInformation("Die App wurde gestartet.");
 
         // Setze die Shell als MainPage
@@ -28,6 +32,8 @@ public partial class App
     {
         try
         {
+            await Task.Delay(500); 
+            
             var userId = Preferences.Get("LoggedInUserId", 0);
             if (userId <= 0)
             {
@@ -43,7 +49,7 @@ public partial class App
                 await Shell.Current.GoToAsync("//LoginPage");
                 return;
             }
-
+            _userSession.SetUser(user);
             // Navigiere basierend auf der Benutzerrolle
             switch (user.Role)
             {
