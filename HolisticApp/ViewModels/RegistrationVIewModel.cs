@@ -30,6 +30,12 @@ public partial class RegistrationViewModel(
 
     [ObservableProperty]
     private string _invitationToken = string.Empty;
+    
+    [RelayCommand]
+    private async Task ReturnAsync()
+    {
+        await _navigationService.GoBackAsync();
+    }
 
     [RelayCommand]
     private async Task RegisterAsync()

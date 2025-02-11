@@ -1,8 +1,9 @@
 ===== Datei: App.xaml =====
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
-<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="HolisticApp.App">
+<Application 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="HolisticApp.App">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -335,11 +336,15 @@ public static class MauiProgram
         <MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" Color="#512BD4" />
 
         <!-- Splash Screen -->
-        <MauiSplashScreen Include="Resources/Splash/splash.svg" Color="#512BD4" BaseSize="128,128" />
-
+        <MauiSplashScreen Include="Resources/Splash/continuum_health_logo.png"
+                          Color="#FAFAFA"
+                          BaseSize="600,600" />
+        
+        
         <!-- Images -->
-        <MauiImage Include="Resources/Images/*" />
-        <MauiImage Update="Resources/Images/dotnet_bot.png" Resize="True" BaseSize="300,185" />
+        <MauiImage Include="Resources/Images/continuum_health_logo.png"
+                   Resize="true"
+                   BaseSize="400,400" />
 
         <!-- Custom Fonts -->
         <MauiFont Include="Resources/Fonts/*" />
@@ -562,81 +567,114 @@ public partial class LoginPage
     x:DataType="viewmodels:LoginViewModel"
     Title="Login"
     BackgroundColor="{StaticResource BackgroundColor}">
-    
+
     <ScrollView>
-        <VerticalStackLayout
-            Padding="30"
-            Spacing="20"
-            HorizontalOptions="Center"
-            VerticalOptions="Center">
-            
-            <!--~1~ Optionales Logo / Icon @1@
-            <Image Source="heart.png"
-                   WidthRequest="60"
-                   HeightRequest="60"
-                   HorizontalOptions="Center"/>-->
-            
-            <!-- Überschrift -->
-            <Label Text="Continuum Health"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   HorizontalOptions="Center"
-                   HorizontalTextAlignment="Center"
-                   TextColor="{StaticResource PrimaryColor}"
-                   Margin="0,0,0,10"/>
+        <VerticalStackLayout 
+            Padding="{OnPlatform Android=20, iOS=10, MacCatalyst=60, WinUI=60}" 
+            Spacing="{OnPlatform Android=20, iOS=10, MacCatalyst=40, WinUI=40}" 
+            HorizontalOptions="Center" 
+            VerticalOptions="Center"
+            BackgroundColor="Transparent">
 
-            <!-- Email-Label + abgerundetes Textfeld -->
-            <Label Text="Email"
-                   TextColor="{StaticResource PrimaryColor}"
-                   FontAttributes="Bold"/>
-            <Border StrokeShape="RoundRectangle 8"
-                    StrokeThickness="0"
-                    BackgroundColor="#F5F5F5"
-                    Padding="10"
-                    Margin="0,0,0,10">
-                <Entry Placeholder="Email"
-                       Text="{Binding Email}"
-                       TextColor="Black"/>
-            </Border>
+            <!-- Logo -->
+            <Image Source="continuum_health_logo.png"
+                   Margin="0,-90,0,-20"
+                   HorizontalOptions="Center"/>
 
-            <!-- Passwort-Label + abgerundetes Textfeld -->
-            <Label Text="Passwort"
-                   TextColor="{StaticResource PrimaryColor}"
-                   FontAttributes="Bold"/>
-            <Border StrokeShape="RoundRectangle 8"
-                    StrokeThickness="0"
-                    BackgroundColor="#F5F5F5"
-                    Padding="10"
-                    Margin="0,0,0,10">
-                <Entry Placeholder="Passwort"
-                       Text="{Binding Password}"
-                       IsPassword="True"
-                       TextColor="Black"/>
-            </Border>
+            <!-- Login Card -->
+            <Frame HasShadow="True" 
+                   BackgroundColor="{StaticResource SecondaryColor}"
+                   CornerRadius="{OnPlatform Android=20, iOS=20, MacCatalyst=40, WinUI=40}"
+                   Padding="{OnPlatform Android=20, iOS=20, MacCatalyst=40, WinUI=40}">
+                <VerticalStackLayout Spacing="{OnPlatform Android=15, iOS=15, MacCatalyst=30, WinUI=30}">
+                    
+                    <!-- Email-Feld -->
+                    <Label TextColor="{StaticResource PrimaryColor}" 
+                           FontAttributes="Bold">
+                        <Label.FontSize>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="Android,iOS" Value="14" />
+                                <On Platform="MacCatalyst,WinUI" Value="28" />
+                            </OnPlatform>
+                        </Label.FontSize>
+                    </Label>
+                    <Border StrokeShape="RoundRectangle 8" 
+                            StrokeThickness="0" 
+                            BackgroundColor="{StaticResource SecondaryColor}"
+                            Padding="{OnPlatform Android=10, iOS=10, MacCatalyst=20, WinUI=20}">
+                        <Entry Placeholder="Email" 
+                               Text="{Binding Email}" 
+                               TextColor="Black">
+                            <Entry.FontSize>
+                                <OnPlatform x:TypeArguments="x:Double">
+                                    <On Platform="Android,iOS" Value="14" />
+                                    <On Platform="MacCatalyst,WinUI" Value="28" />
+                                </OnPlatform>
+                            </Entry.FontSize>
+                        </Entry>
+                    </Border>
 
-            <!-- Login-Button -->
-            <Button Text="Login"
-                    Command="{Binding LoginCommand}"
-                    TextColor="White"
-                    BackgroundColor="{StaticResource SecondaryColor}"
-                    CornerRadius="6"
-                    Margin="0,10,0,0"
-                    HeightRequest="50"/>
+                    <!-- Passwort-Feld -->
+                    <Label TextColor="{StaticResource PrimaryColor}" 
+                           FontAttributes="Bold">
+                        <Label.FontSize>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="Android,iOS" Value="14" />
+                                <On Platform="MacCatalyst,WinUI" Value="28" />
+                            </OnPlatform>
+                        </Label.FontSize>
+                    </Label>
+                    <Border StrokeShape="RoundRectangle 8" 
+                            StrokeThickness="0" 
+                            BackgroundColor="{StaticResource SecondaryColor}"
+                            Padding="{OnPlatform Android=10, iOS=10, MacCatalyst=20, WinUI=20}">
+                        <Entry Placeholder="Passwort" 
+                               Text="{Binding Password}" 
+                               IsPassword="True" 
+                               TextColor="Black">
+                            <Entry.FontSize>
+                                <OnPlatform x:TypeArguments="x:Double">
+                                    <On Platform="Android,iOS" Value="14" />
+                                    <On Platform="MacCatalyst,WinUI" Value="28" />
+                                </OnPlatform>
+                            </Entry.FontSize>
+                        </Entry>
+                    </Border>
 
-            <!-- Registrieren-Button (mit Rahmen) -->
-            <Button Text="Registrieren"
-                    Command="{Binding RegisterCommand}"
-                    TextColor="{StaticResource SecondaryColor}"
-                    BackgroundColor="Transparent"
-                    BorderColor="{StaticResource SecondaryColor}"
+                    <!-- Login-Button -->
+                    <Button Text="Login" 
+                            Command="{Binding LoginCommand}" 
+                            TextColor="White" 
+                            BackgroundColor="{StaticResource PrimaryColor}"
+                            HeightRequest="{OnPlatform Android=50, iOS=50, MacCatalyst=100, WinUI=100}">
+                        <Button.FontSize>
+                            <OnPlatform x:TypeArguments="x:Double">
+                                <On Platform="Android,iOS" Value="16" />
+                                <On Platform="MacCatalyst,WinUI" Value="32" />
+                            </OnPlatform>
+                        </Button.FontSize>
+                    </Button>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Registrieren-Button -->
+            <Button Text="Registrieren" 
+                    Command="{Binding RegisterCommand}" 
+                    TextColor="{StaticResource PrimaryColor}" 
+                    BackgroundColor="{StaticResource BorderColor}" 
+                    BorderColor="{StaticResource PrimaryColor}" 
                     BorderWidth="1"
-                    CornerRadius="6"
-                    HeightRequest="50"
-                    Margin="0,10,0,0"/>
+                    HeightRequest="{OnPlatform Android=50, iOS=50, MacCatalyst=100, WinUI=100}">
+                <Button.FontSize>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <On Platform="Android,iOS" Value="16" />
+                        <On Platform="MacCatalyst,WinUI" Value="32" />
+                    </OnPlatform>
+                </Button.FontSize>
+            </Button>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
-
 
 
 ===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/Views/AnamnesisPage.xaml =====

@@ -20,10 +20,19 @@ public partial class LoginViewModel(
     private readonly ILogger<LoginViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     [ObservableProperty]
-    private string _email = string.Empty;
+    private string _emailOrUsername = string.Empty;
 
     [ObservableProperty]
     private string _password = string.Empty;
+
+    // Methode, die ausgelöst wird, wenn sich das Email-/Username-Feld ändert
+    partial void OnEmailOrUsernameChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            Password = string.Empty;
+        }
+    }
 
     [RelayCommand]
     private async Task LoginAsync()
@@ -35,19 +44,20 @@ public partial class LoginViewModel(
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
+        if (string.IsNullOrWhiteSpace(EmailOrUsername) || string.IsNullOrWhiteSpace(Password))
         {
-            await currentPage.DisplayAlert("Fehler", "Bitte Email und Passwort eingeben.", "OK");
-            _logger.LogWarning("Login-Versuch fehlgeschlagen: Email oder Passwort wurden nicht ausgefüllt.");
+            await currentPage.DisplayAlert("Fehler", "Bitte Benutzername/Email und Passwort eingeben.", "OK");
+            _logger.LogWarning("Login-Versuch fehlgeschlagen: Username/Email oder Passwort wurde nicht ausgefüllt.");
             return;
         }
 
-        _logger.LogInformation("Login-Versuch für Email: {Email} gestartet.", Email);
+        _logger.LogInformation("Login-Versuch für Benutzername oder Email: {Input} gestartet.", EmailOrUsername);
         try
         {
             var users = await _userRepository.GetUsersAsync();
             var user = users.FirstOrDefault(u =>
-                u.Email.Equals(Email, StringComparison.OrdinalIgnoreCase) &&
+                (u.Email.Equals(EmailOrUsername, StringComparison.OrdinalIgnoreCase) || 
+                 u.Username?.Equals(EmailOrUsername, StringComparison.OrdinalIgnoreCase) == true) &&
                 u.PasswordHash == Password);
 
             if (user != null)
@@ -63,13 +73,10 @@ public partial class LoginViewModel(
                         _logger.LogInformation("Navigiere zu AdminDashboardPage.");
                         break;
                     case UserRole.Doctor:
-                    {
                         await _navigationService.NavigateToAsync(Routes.DoctorDashboardPage);
                         _logger.LogInformation("Navigiere zu DoctorDashboardPage.");
                         break;
-                    }
                     default:
-                    {
                         var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
                         if (!anamnesisCompleted)
                         {
@@ -81,20 +88,18 @@ public partial class LoginViewModel(
                             await _navigationService.NavigateToAsync(Routes.HomePage);
                             _logger.LogInformation("Navigiere zu HomePage (Anamnese abgeschlossen).");
                         }
-
                         break;
-                    }
                 }
             }
             else
             {
                 await currentPage.DisplayAlert("Fehler", "Ungültige Anmeldedaten.", "OK");
-                _logger.LogWarning("Anmeldeversuch fehlgeschlagen: Keine Übereinstimmung für Email {Email} gefunden.", Email);
+                _logger.LogWarning("Anmeldeversuch fehlgeschlagen: Keine Übereinstimmung für Eingabe {Input} gefunden.", EmailOrUsername);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Anmeldeprozess für Email: {Email}", Email);
+            _logger.LogError(ex, "Fehler beim Anmeldeprozess für Eingabe: {Input}", EmailOrUsername);
             await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
         }
     }

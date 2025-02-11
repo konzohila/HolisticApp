@@ -29,6 +29,12 @@ namespace HolisticApp.Services
         {
             try
             {
+                if (Shell.Current.CurrentPage is Views.RegistrationPage)
+                {
+                    _logger.LogInformation("Navigiere explizit zur LoginPage zurück.");
+                    await Shell.Current.GoToAsync("//LoginPage"); // Feste Navigation zur LoginPage
+                    return;
+                }
                 if (Shell.Current.Navigation.NavigationStack.Count > 1)
                 {
                     _logger.LogInformation("Navigiere zurück zur vorherigen Seite.");
@@ -37,7 +43,7 @@ namespace HolisticApp.Services
                 else
                 {
                     _logger.LogWarning("Kein vorheriger Navigationseintrag vorhanden, zurück zur Startseite.");
-                    await Shell.Current.GoToAsync("//HomePage"); // Oder eine andere Standard-Seite
+                    await Shell.Current.GoToAsync("//HomePage"); 
                 }
             }
             catch (Exception ex)

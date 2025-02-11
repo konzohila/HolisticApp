@@ -8,15 +8,22 @@
     Title="Registrierung"
     BackgroundColor="{StaticResource BackgroundColor}">
     
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zurück" 
+                     Order="Primary"
+                     Priority="0"
+                     Command="{Binding ReturnCommand}" />
+    </ContentPage.ToolbarItems>
+    
     <ScrollView>
         <StackLayout Padding="30" Spacing="20" VerticalOptions="Center">
             <Label Text="Registrierung" 
                    FontSize="24" 
                    HorizontalOptions="Center" 
                    TextColor="{StaticResource PrimaryColor}" />
-            <Entry Text="{Binding Username}" Placeholder="Benutzername" />
-            <Entry Text="{Binding Email}" Placeholder="Email" Keyboard="Email" />
-            <Entry Text="{Binding Password}" Placeholder="Passwort" IsPassword="True" />
+            <Entry Text="{Binding Username}" Placeholder="Benutzername" BackgroundColor="{StaticResource BackgroundColor}"/>
+            <Entry Text="{Binding Email}" Placeholder="Email" Keyboard="Email" BackgroundColor="{StaticResource BackgroundColor}"/>
+            <Entry Text="{Binding Password}" Placeholder="Passwort" IsPassword="True" BackgroundColor="{StaticResource BackgroundColor}"/>
             <Button Text="Registrieren" Command="{Binding RegisterCommand}" />
         </StackLayout>
     </ScrollView>

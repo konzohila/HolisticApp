@@ -42,8 +42,8 @@
                             StrokeThickness="0" 
                             BackgroundColor="{StaticResource SecondaryColor}"
                             Padding="{OnPlatform Android=10, iOS=10, MacCatalyst=20, WinUI=20}">
-                        <Entry Placeholder="Email" 
-                               Text="{Binding Email}" 
+                        <Entry Placeholder="Benutzername oder Email" 
+                               Text="{Binding EmailOrUsername}" 
                                TextColor="Black">
                             <Entry.FontSize>
                                 <OnPlatform x:TypeArguments="x:Double">
