@@ -10,7 +10,6 @@
     
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Zurück" 
-                     IconImageSource="back_icon.png"
                      Order="Primary"
                      Priority="0"
                      Command="{Binding ReturnCommand}" />
