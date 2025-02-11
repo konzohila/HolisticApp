@@ -2,153 +2,116 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
+using HolisticApp.Services.Interfaces;
 using HolisticApp.Views;
 using Microsoft.Extensions.Logging;
 
-namespace HolisticApp.ViewModels
+namespace HolisticApp.ViewModels;
+
+public partial class LoginViewModel(
+    IUserRepository userRepository,
+    INavigationService navigationService,
+    ILogger<LoginViewModel> logger)
+    : ObservableObject
 {
-    public partial class LoginViewModel(
-        IUserRepository userRepository,
-        INavigation navigation,
-        ILogger<LoginViewModel> logger)
-        : ObservableObject
+    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    private readonly INavigationService _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+    private readonly ILogger<LoginViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+    [ObservableProperty]
+    private string _email = string.Empty;
+
+    [ObservableProperty]
+    private string _password = string.Empty;
+
+    [RelayCommand]
+    private async Task LoginAsync()
     {
-        private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-        private readonly INavigation _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
-        private readonly ILogger<LoginViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-        [ObservableProperty]
-        private string _email = string.Empty;
-
-        [ObservableProperty]
-        private string _password = string.Empty;
-
-        [RelayCommand]
-        private async Task LoginAsync()
+        var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
+        if (currentPage == null)
         {
-            var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
-            if (currentPage == null)
-            {
-                _logger.LogError("Kein gültiges Fenster gefunden. Login wird abgebrochen.");
-                return;
-            }
+            _logger.LogError("Kein gültiges Fenster gefunden. Login wird abgebrochen.");
+            return;
+        }
 
-            if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
-            {
-                await currentPage.DisplayAlert("Fehler", "Bitte Email und Passwort eingeben.", "OK");
-                _logger.LogWarning("Login-Versuch fehlgeschlagen: Email oder Passwort wurden nicht ausgefüllt.");
-                return;
-            }
+        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
+        {
+            await currentPage.DisplayAlert("Fehler", "Bitte Email und Passwort eingeben.", "OK");
+            _logger.LogWarning("Login-Versuch fehlgeschlagen: Email oder Passwort wurden nicht ausgefüllt.");
+            return;
+        }
 
-            _logger.LogInformation("Login-Versuch für Email: {Email} gestartet.", Email);
-            try
-            {
-                var users = await _userRepository.GetUsersAsync();
-                var user = users.FirstOrDefault(u =>
-                    u.Email.Equals(Email, StringComparison.OrdinalIgnoreCase) &&
-                    u.PasswordHash == Password);
+        _logger.LogInformation("Login-Versuch für Email: {Email} gestartet.", Email);
+        try
+        {
+            var users = await _userRepository.GetUsersAsync();
+            var user = users.FirstOrDefault(u =>
+                u.Email.Equals(Email, StringComparison.OrdinalIgnoreCase) &&
+                u.PasswordHash == Password);
 
-                if (user != null)
+            if (user != null)
+            {
+                Preferences.Set("LoggedInUserId", user.Id);
+                _logger.LogInformation("User (ID: {UserId}) hat sich erfolgreich angemeldet.", user.Id);
+
+                switch (user.Role)
                 {
-                    Preferences.Set("LoggedInUserId", user.Id);
-                    _logger.LogInformation("User (ID: {UserId}) hat sich erfolgreich angemeldet.", user.Id);
-
-                    // Navigation basierend auf der Benutzerrolle
-                    if (user.Role == UserRole.Admin)
-                    {
-                        if (Application.Current?.Handler != null)
-                        {
-                            var services = Application.Current.Handler.MauiContext?.Services;
-                            if (services != null)
-                            {
-                                var adminDashboardPage = services.GetRequiredService<AdminDashboardPage>();
-                                await _navigation.PushAsync(adminDashboardPage);
-                            }
-                        }
-
+                    case UserRole.Admin:
+                        await _navigationService.NavigateToAsync("///AdminDashboardPage");
                         _logger.LogInformation("Navigiere zu AdminDashboardPage.");
-                    }
-                    else if (user.Role == UserRole.Doctor)
+                        break;
+                    case UserRole.Doctor:
                     {
-                        if (Application.Current?.Handler != null)
-                        {
-                            var services = Application.Current.Handler.MauiContext?.Services;
-                            if (services != null)
-                            {
-                                var doctorDashboardPage = services.GetRequiredService<DoctorDashboardPage>();
-                                await _navigation.PushAsync(doctorDashboardPage);
-                            }
-                        }
+                        await _navigationService.NavigateToAsync("///DoctorDashboardPage");
                         _logger.LogInformation("Navigiere zu DoctorDashboardPage.");
+                        break;
                     }
-                    else
+                    default:
                     {
-                        bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                        var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
                         if (!anamnesisCompleted)
                         {
-                            if (Application.Current?.Handler != null)
-                            {
-                                var services = Application.Current.Handler.MauiContext?.Services;
-                                if (services != null)
-                                {
-                                    var anamnesisPage = services.GetRequiredService<AnamnesisPage>();
-                                    await _navigation.PushAsync(anamnesisPage);
-                                }
-                            }
+                            await _navigationService.NavigateToAsync("///AnamnesisPage");
                             _logger.LogInformation("Navigiere zu AnamnesisPage (Anamnese nicht abgeschlossen).");
                         }
                         else
                         {
-                            if (Application.Current?.Handler != null)
-                            {
-                                var services = Application.Current.Handler.MauiContext?.Services;
-                                if (services != null)
-                                {
-                                    var homePage = services.GetRequiredService<HomePage>();
-                                    await _navigation.PushAsync(homePage);
-                                }
-                            }
+                            await _navigationService.NavigateToAsync("///HomePage");
                             _logger.LogInformation("Navigiere zu HomePage (Anamnese abgeschlossen).");
                         }
+
+                        break;
                     }
                 }
-                else
-                {
-                    await currentPage.DisplayAlert("Fehler", "Ungültige Anmeldedaten.", "OK");
-                    _logger.LogWarning("Anmeldeversuch fehlgeschlagen: Keine Übereinstimmung für Email {Email} gefunden.", Email);
-                }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Fehler beim Anmeldeprozess für Email: {Email}", Email);
-                await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
+                await currentPage.DisplayAlert("Fehler", "Ungültige Anmeldedaten.", "OK");
+                _logger.LogWarning("Anmeldeversuch fehlgeschlagen: Keine Übereinstimmung für Email {Email} gefunden.", Email);
             }
         }
-
-        [RelayCommand]
-        private async Task RegisterAsync()
+        catch (Exception ex)
         {
-            try
+            _logger.LogError(ex, "Fehler beim Anmeldeprozess für Email: {Email}", Email);
+            await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
+        }
+    }
+
+    [RelayCommand]
+    private async Task RegisterAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Navigiere zur Registrierungsseite.");
+            await _navigationService.NavigateToAsync("///RegistrationPage");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Wechsel zur Registrierungsseite.");
+            var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
+            if (currentPage != null)
             {
-                _logger.LogInformation("Navigiere zur Registrierungsseite.");
-                if (Application.Current?.Handler != null)
-                {
-                    var services = Application.Current.Handler.MauiContext?.Services;
-                    if (services != null)
-                    {
-                        var registrationPage = services.GetRequiredService<RegistrationPage>();
-                        await _navigation.PushAsync(registrationPage);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler beim Wechsel zur Registrierungsseite.");
-                var currentPage = Application.Current?.Windows.FirstOrDefault()?.Page;
-                if (currentPage != null)
-                {
-                    await currentPage.DisplayAlert("Fehler", "Ein Fehler beim Navigieren ist aufgetreten.", "OK");
-                }
+                await currentPage.DisplayAlert("Fehler", "Ein Fehler beim Navigieren ist aufgetreten.", "OK");
             }
         }
     }

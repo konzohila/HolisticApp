@@ -1,13 +1,12 @@
 using HolisticApp.ViewModels;
 
-namespace HolisticApp.Views
+namespace HolisticApp.Views;
+
+public partial class DoctorRegistrationPage
 {
-    public partial class DoctorRegistrationPage
+    public DoctorRegistrationPage(DoctorRegistrationViewModel vm)
     {
-        public DoctorRegistrationPage(DoctorRegistrationViewModel vm)
-        {
-            InitializeComponent();
-            BindingContext = vm;
-        }
+        InitializeComponent();
+        BindingContext = vm;
     }
 }

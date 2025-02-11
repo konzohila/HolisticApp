@@ -1,13 +1,12 @@
 using HolisticApp.ViewModels;
 
-namespace HolisticApp.Views
+namespace HolisticApp.Views;
+
+public partial class HomePage
 {
-    public partial class HomePage
+    public HomePage(HomeViewModel vm)
     {
-        public HomePage(HomeViewModel vm)
-        {
-            InitializeComponent();
-            BindingContext = vm;
-        }
+        InitializeComponent();
+        BindingContext = vm;
     }
 }

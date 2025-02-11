@@ -1,13 +1,12 @@
 using HolisticApp.ViewModels;
 
-namespace HolisticApp.Views
+namespace HolisticApp.Views;
+
+public partial class AdminDashboardPage
 {
-    public partial class AdminDashboardPage
+    public AdminDashboardPage(AdminDashboardViewModel vm)
     {
-        public AdminDashboardPage(AdminDashboardViewModel vm)
-        {
-            InitializeComponent();
-            BindingContext = vm;
-        }
+        InitializeComponent();
+        BindingContext = vm;
     }
 }

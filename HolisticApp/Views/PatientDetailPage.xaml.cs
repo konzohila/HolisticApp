@@ -1,13 +1,12 @@
 using HolisticApp.Models;
 
-namespace HolisticApp.Views
+namespace HolisticApp.Views;
+
+public partial class PatientDetailPage
 {
-    public partial class PatientDetailPage
+    public PatientDetailPage(User? patient)
     {
-        public PatientDetailPage(User? patient)
-        {
-            InitializeComponent();
-            BindingContext = patient;
-        }
+        InitializeComponent();
+        BindingContext = patient;
     }
 }

@@ -1,94 +1,74 @@
 ﻿using System.Diagnostics;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
-using HolisticApp.Views;
+using Microsoft.Extensions.Logging;
 
-namespace HolisticApp
+namespace HolisticApp;
+
+public partial class App : Application
 {
-    public partial class App
+    private readonly IUserRepository _userRepository;
+    private readonly ILogger<App> _logger;
+
+    public App(IUserRepository userRepository, ILogger<App> logger)
     {
-        private readonly IUserRepository _userRepository;
+        InitializeComponent();
+        _userRepository = userRepository;
+        _logger = logger;
+        _logger.LogInformation("Die App wurde gestartet.");
 
-        public App(IUserRepository userRepository)
-        {
-            InitializeComponent();
-            _userRepository = userRepository;
-        }
+        // Setze die Shell als MainPage
+        MainPage = new AppShell();
 
-        protected override Window CreateWindow(IActivationState? activationState)
-        {
-            var window = new Window(new NavigationPage(new LoadingPage()));
-            InitializeAsync(window);
-            return window;
-        }
+        // Starte die initiale Navigation
+        InitializeAsync();
+    }
 
-        private async void InitializeAsync(Window window)
+    private async void InitializeAsync()
+    {
+        try
         {
-            try
+            var userId = Preferences.Get("LoggedInUserId", 0);
+            if (userId <= 0)
             {
-                int userId = Preferences.Get("LoggedInUserId", 0);
-                if (userId <= 0)
-                {
-                    Debug.WriteLine("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
-                    var services = Current?.Handler?.MauiContext?.Services;
-                    if (services != null)
-                    {
-                        var loginPage = services.GetRequiredService<LoginPage>();
-                        window.Page = loginPage;
-                    }
-                    return;
-                }
-
-                var user = await _userRepository.GetUserAsync(userId);
-                if (user == null)
-                {
-                    Debug.WriteLine($"[App] Kein User für die gespeicherte ID ({userId}) gefunden. Navigiere zur Login-Seite.");
-                    var services = Current?.Handler?.MauiContext?.Services;
-                    if (services != null)
-                    {
-                        var loginPage = services.GetRequiredService<LoginPage>();
-                        window.Page = loginPage;
-                    }
-                    return;
-                }
-
-                Page newPage;
-                if (Current?.Handler == null) return;
-                var mauiservices = Current.Handler.MauiContext?.Services;
-                if (mauiservices == null) return;
-                switch (user.Role)
-                {
-                    case UserRole.Doctor:
-                        Debug.WriteLine($"[App] User {user.Id} (Doctor) gefunden. Navigiere zur Doktor-Dashboard-Seite.");
-                        var doctorDashboardPage = mauiservices.GetRequiredService<DoctorDashboardPage>();
-                        newPage = doctorDashboardPage;
-                        break;
-                    case UserRole.Admin:
-                        Debug.WriteLine($"[App] User {user.Id} (Admin) gefunden. Navigiere zur Admin-Dashboard-Seite.");
-                        var adminDashboardPage = mauiservices.GetRequiredService<AdminDashboardPage>();
-                        newPage = adminDashboardPage;
-                        break;
-                    default:
-                        bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
-                        Debug.WriteLine($"[App] User {user.Id} (Patient) gefunden. Anamnese abgeschlossen: {anamnesisCompleted}");
-                        newPage = anamnesisCompleted ? mauiservices.GetRequiredService<HomePage>() : mauiservices.GetRequiredService<AnamnesisPage>();
-                        break;
-                }
-                window.Page = new NavigationPage(newPage);
+                _logger.LogInformation("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
+                await Shell.Current.GoToAsync("//LoginPage");
+                return;
             }
-            catch (Exception ex)
+
+            var user = await _userRepository.GetUserAsync(userId);
+            if (user == null)
             {
-                Debug.WriteLine($"[App] Fehler während der Initialisierung: {ex.Message}");
-                Debug.WriteLine(ex.StackTrace);
-                if (Current?.Handler != null)
-                {
-                    var mauiservices = Current.Handler.MauiContext?.Services;
-                    if (mauiservices != null)
-                    {
-                        window.Page = mauiservices.GetRequiredService<AnamnesisPage>();            
-                    }
-                }
+                _logger.LogError("[App] Kein User für die gespeicherte ID gefunden. Navigiere zur Login-Seite.");
+                await Shell.Current.GoToAsync("//LoginPage");
+                return;
             }
+
+            // Navigiere basierend auf der Benutzerrolle
+            switch (user.Role)
+            {
+                case UserRole.Doctor:
+                    _logger.LogInformation("[App] User {UserId} (Doctor) gefunden. Navigiere zur DoctorDashboardPage.", user.Id);
+                    await Shell.Current.GoToAsync("//DoctorDashboardPage");
+                    break;
+                case UserRole.Admin:
+                    _logger.LogInformation("[App] User {UserId} (Admin) gefunden. Navigiere zur AdminDashboardPage.", user.Id);
+                    await Shell.Current.GoToAsync("//AdminDashboardPage");
+                    break;
+                default:
+                    var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                    _logger.LogInformation("[App] User {UserId} (Patient) gefunden. Anamnese abgeschlossen: {AnamnesisCompleted}", user.Id, anamnesisCompleted);
+                    if (anamnesisCompleted)
+                        await Shell.Current.GoToAsync("//HomePage");
+                    else
+                        await Shell.Current.GoToAsync("//AnamnesisPage");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[App] Fehler während der Initialisierung");
+            await Shell.Current.GoToAsync("//LoginPage");
         }
     }
 }

@@ -1,13 +1,12 @@
 using HolisticApp.ViewModels;
 
-namespace HolisticApp.Views
+namespace HolisticApp.Views;
+
+public partial class LoginPage
 {
-    public partial class LoginPage
+    public LoginPage(LoginViewModel vm)
     {
-        public LoginPage(LoginViewModel vm)
-        {
-            InitializeComponent();
-            BindingContext = vm;
-        }
+        InitializeComponent();
+        BindingContext = vm;
     }
 }

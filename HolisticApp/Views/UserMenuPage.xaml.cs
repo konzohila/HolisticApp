@@ -1,13 +1,12 @@
 using HolisticApp.ViewModels;
 
-namespace HolisticApp.Views
+namespace HolisticApp.Views;
+
+public partial class UserMenuPage
 {
-    public partial class UserMenuPage
+    public UserMenuPage(UserMenuViewModel vm)
     {
-        public UserMenuPage(UserMenuViewModel vm)
-        {
-            InitializeComponent();
-            BindingContext = vm;
-        }
+        InitializeComponent();
+        BindingContext = vm;
     }
 }

@@ -5,95 +5,90 @@ using HolisticApp.Models;
 using HolisticApp.Views;
 using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
+using HolisticApp.Services.Interfaces;
 
 
+namespace HolisticApp.ViewModels;
 
-namespace HolisticApp.ViewModels
+public abstract partial class AdminDashboardViewModel : ObservableObject
 {
-    public abstract partial class AdminDashboardViewModel : ObservableObject
+    private readonly IUserRepository _userRepository;
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<AdminDashboardViewModel> _logger;
+    [ObservableProperty]
+    private ObservableCollection<User> _doctors;
+    private User CurrentUser { get; }
+
+    protected AdminDashboardViewModel(User currentUser,
+        IUserRepository userRepository,
+        INavigationService navigationService,
+        ILogger<AdminDashboardViewModel> logger, DoctorRegistrationPage doctorRegistrationPage, UserMenuPage userMenuPage)
     {
-        private readonly IUserRepository _userRepository;
-        private readonly INavigation _navigation;
-        private readonly ILogger<AdminDashboardViewModel> _logger;
-        private readonly DoctorRegistrationPage _doctorRegistrationPage;
-        private readonly UserMenuPage _userMenuPage;
-        [ObservableProperty]
-        private ObservableCollection<User> _doctors;
-        public User CurrentUser { get; }
+        CurrentUser = currentUser;
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        public AdminDashboardViewModel(User currentUser,
-                                       IUserRepository userRepository,
-                                       INavigation navigation,
-                                       ILogger<AdminDashboardViewModel> logger, DoctorRegistrationPage doctorRegistrationPage, UserMenuPage userMenuPage)
+        Doctors = new ObservableCollection<User>();
+    }
+
+    public string UserInitials => GetInitials(CurrentUser.Username);
+
+    private string GetInitials(string fullName)
+    {
+        var parts = fullName.Split(' ');
+        if (parts.Length == 0) return "";
+        if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpper();
+        return string.Concat(parts.Select(p => p[0])).ToUpper();
+    }
+
+    [RelayCommand]
+    public async Task LoadDoctorsAsync()
+    {
+        try
         {
-            CurrentUser = currentUser;
-            _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-            _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _doctorRegistrationPage = doctorRegistrationPage;
-            _userMenuPage = userMenuPage;
+            _logger.LogInformation("Lade alle Benutzer und filtere Doktoren für Admin {AdminId}", CurrentUser.Id);
+            var allUsers = await _userRepository.GetUsersAsync();
+            var doctorList = allUsers.Where(u => u.Role == UserRole.Doctor).ToList();
 
-            Doctors = new ObservableCollection<User>();
+            Doctors.Clear();
+            foreach (var doctor in doctorList)
+            {
+                Doctors.Add(doctor);
+            }
+            _logger.LogInformation("LoadDoctorsAsync erfolgreich: {Count} Doktoren gefunden.", doctorList.Count);
         }
-
-        public string UserInitials => GetInitials(CurrentUser.Username);
-
-        private string GetInitials(string fullName)
+        catch (Exception ex)
         {
-            var parts = fullName.Split(' ');
-            if (parts.Length == 0) return "";
-            if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpper();
-            return string.Concat(parts.Select(p => p[0])).ToUpper();
+            _logger.LogError(ex, "Fehler in LoadDoctorsAsync für Admin {AdminId}", CurrentUser.Id);
         }
+    }
 
-        [RelayCommand]
-        public async Task LoadDoctorsAsync()
+    [RelayCommand]
+    public async Task CreateDoctorAsync()
+    {
+        try
         {
-            try
-            {
-                _logger.LogInformation("Lade alle Benutzer und filtere Doktoren für Admin {AdminId}", CurrentUser.Id);
-                var allUsers = await _userRepository.GetUsersAsync();
-                var doctorList = allUsers.Where(u => u.Role == UserRole.Doctor).ToList();
-
-                Doctors.Clear();
-                foreach (var doctor in doctorList)
-                {
-                    Doctors.Add(doctor);
-                }
-                _logger.LogInformation("LoadDoctorsAsync erfolgreich: {Count} Doktoren gefunden.", doctorList.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler in LoadDoctorsAsync für Admin {AdminId}", CurrentUser.Id);
-            }
+            _logger.LogInformation("Admin {AdminId} navigiert zur DoctorRegistrationPage.", CurrentUser.Id);
+            await _navigationService.NavigateToAsync("///DoctorRegistrationPage");
         }
-
-        [RelayCommand]
-        public async Task CreateDoctorAsync()
+        catch (Exception ex)
         {
-            try
-            {
-                _logger.LogInformation("Admin {AdminId} navigiert zur DoctorRegistrationPage.", CurrentUser.Id);
-                await _navigation.PushAsync(_doctorRegistrationPage);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler beim Navigieren zu DoctorRegistrationPage.");
-            }
+            _logger.LogError(ex, "Fehler beim Navigieren zu DoctorRegistrationPage.");
         }
+    }
 
-        [RelayCommand]
-        public async Task OpenUserMenuAsync()
+    [RelayCommand]
+    public async Task OpenUserMenuAsync()
+    {
+        try
         {
-            try
-            {
-                _logger.LogInformation("Admin {AdminId} öffnet das User-Menü.", CurrentUser.Id);
-                await _navigation.PushAsync(_userMenuPage);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Admin {AdminId}", CurrentUser.Id);
-            }
+            _logger.LogInformation("Admin {AdminId} öffnet das User-Menü.", CurrentUser.Id);
+            await _navigationService.NavigateToAsync("///UserMenuPage");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Admin {AdminId}", CurrentUser.Id);
         }
     }
 }

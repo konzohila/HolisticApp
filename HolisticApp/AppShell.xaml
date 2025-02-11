@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:HolisticApp.Views"
+    x:Class="HolisticApp.AppShell">
+  
+    <!-- Optional: Flyout Header, Menüpunkte, Tabs etc. -->
+    <Shell.FlyoutHeader>
+        <StackLayout BackgroundColor="LightGray" Padding="10">
+            <Label Text="HolisticApp" FontSize="24" />
+        </StackLayout>
+    </Shell.FlyoutHeader>
+
+    <!-- Definiere die Haupt-Routen -->
+    <!-- Mit Doppel-Slash (//) wird eine absolute Navigation durchgeführt -->
+    <ShellContent Route="LoginPage" ContentTemplate="{DataTemplate views:LoginPage}" />
+    <ShellContent Route="RegistrationPage" ContentTemplate="{DataTemplate views:RegistrationPage}" />
+    <ShellContent Route="HomePage" ContentTemplate="{DataTemplate views:HomePage}" />
+    <ShellContent Route="AnamnesisPage" ContentTemplate="{DataTemplate views:AnamnesisPage}" />
+    <ShellContent Route="AdminDashboardPage" ContentTemplate="{DataTemplate views:AdminDashboardPage}" />
+    <ShellContent Route="DoctorDashboardPage" ContentTemplate="{DataTemplate views:DoctorDashboardPage}" />
+    <ShellContent Route="DoctorRegistrationPage" ContentTemplate="{DataTemplate views:DoctorRegistrationPage}" />
+    <ShellContent Route="PatientDetailPage" ContentTemplate="{DataTemplate views:PatientDetailPage}" />
+    <ShellContent Route="UserMenuPage" ContentTemplate="{DataTemplate views:UserMenuPage}" />
+
+</Shell>
