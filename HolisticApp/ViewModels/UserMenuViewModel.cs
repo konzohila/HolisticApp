@@ -1,27 +1,19 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using HolisticApp.Models;
 using HolisticApp.Services.Interfaces;
 using HolisticApp.Views;
 using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.ViewModels;
 
-public partial class UserMenuViewModel : ObservableObject
+public partial class UserMenuViewModel(
+    INavigationService navigationService,
+    ILogger<UserMenuViewModel> logger,
+    IUserSession userSession)
+    : ObservableObject
 {
-    private readonly INavigationService _navigationService;
-    private readonly ILogger<UserMenuViewModel> _logger;
-
-    public User CurrentUser { get; }
-
-    public UserMenuViewModel(User user,
-        INavigationService navigationService,
-        ILogger<UserMenuViewModel> logger)
-    {
-        CurrentUser = user;
-        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly INavigationService _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+    private readonly ILogger<UserMenuViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     [RelayCommand]
     public async Task OpenSettingsAsync()
@@ -33,12 +25,12 @@ public partial class UserMenuViewModel : ObservableObject
             {
                 await window.Page.DisplayAlert("Einstellungen", "Hier können Sie die Einstellungen öffnen.", "OK");
             }
-            _logger.LogInformation("User {UserId} öffnet die Einstellungen.", CurrentUser.Id);
+            _logger.LogInformation("User {UserId} öffnet die Einstellungen.", userSession.CurrentUser.Id);
             await _navigationService.GoBackAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Öffnen der Einstellungen für User {UserId}", CurrentUser.Id);
+            _logger.LogError(ex, "Fehler beim Öffnen der Einstellungen für User {UserId}", userSession.CurrentUser.Id);
         }
     }
 
@@ -61,11 +53,11 @@ public partial class UserMenuViewModel : ObservableObject
                     }
                 }
             }
-            _logger.LogInformation("User {UserId} hat sich ausgeloggt.", CurrentUser.Id);
+            _logger.LogInformation("User {UserId} hat sich ausgeloggt.", userSession.CurrentUser.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Logout für User {UserId}", CurrentUser.Id);
+            _logger.LogError(ex, "Fehler beim Logout für User {UserId}", userSession.CurrentUser.Id);
         }
         return Task.CompletedTask;
     }
@@ -75,14 +67,14 @@ public partial class UserMenuViewModel : ObservableObject
     {
         try
         {
-            var complaintInfo = string.IsNullOrEmpty(CurrentUser.CurrentComplaint) || CurrentUser.CurrentComplaint == "Keine Beschwerden"
+            var complaintInfo = string.IsNullOrEmpty(userSession.CurrentUser.CurrentComplaint) || userSession.CurrentUser.CurrentComplaint == "Keine Beschwerden"
                 ? "Aktuell keine Beschwerden gespeichert."
-                : $"Aktuelle Beschwerde: {CurrentUser.CurrentComplaint}";
+                : $"Aktuelle Beschwerde: {userSession.CurrentUser.CurrentComplaint}";
 
-            var ageInfo = CurrentUser.Age.HasValue ? $"Alter: {CurrentUser.Age} Jahre" : "Alter: Nicht angegeben";
-            var genderInfo = !string.IsNullOrEmpty(CurrentUser.Gender) ? $"Geschlecht: {CurrentUser.Gender}" : "Geschlecht: Nicht angegeben";
-            var heightInfo = CurrentUser.Height.HasValue ? $"Größe: {CurrentUser.Height} cm" : "Größe: Nicht angegeben";
-            var weightInfo = CurrentUser.Weight.HasValue ? $"Gewicht: {CurrentUser.Weight} kg" : "Gewicht: Nicht angegeben";
+            var ageInfo = userSession.CurrentUser.Age.HasValue ? $"Alter: {userSession.CurrentUser.Age} Jahre" : "Alter: Nicht angegeben";
+            var genderInfo = !string.IsNullOrEmpty(userSession.CurrentUser.Gender) ? $"Geschlecht: {userSession.CurrentUser.Gender}" : "Geschlecht: Nicht angegeben";
+            var heightInfo = userSession.CurrentUser.Height.HasValue ? $"Größe: {userSession.CurrentUser.Height} cm" : "Größe: Nicht angegeben";
+            var weightInfo = userSession.CurrentUser.Weight.HasValue ? $"Gewicht: {userSession.CurrentUser.Weight} kg" : "Gewicht: Nicht angegeben";
 
             var infoText = $"{ageInfo}\n{genderInfo}\n{heightInfo}\n{weightInfo}\n\n{complaintInfo}";
 
@@ -91,11 +83,11 @@ public partial class UserMenuViewModel : ObservableObject
             {
                 await window.Page.DisplayAlert("Benutzer-Info", infoText, "OK");
             }
-            _logger.LogInformation("User {UserId} ruft sein Info-Fenster auf.", CurrentUser.Id);
+            _logger.LogInformation("User {UserId} ruft sein Info-Fenster auf.", userSession.CurrentUser.Id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Anzeigen der Benutzer-Info für User {UserId}", CurrentUser.Id);
+            _logger.LogError(ex, "Fehler beim Anzeigen der Benutzer-Info für User {UserId}", userSession.CurrentUser.Id);
         }
     }
 }

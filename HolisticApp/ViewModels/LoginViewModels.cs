@@ -1,9 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Constants;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Services.Interfaces;
-using HolisticApp.Views;
 using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.ViewModels;
@@ -11,7 +11,8 @@ namespace HolisticApp.ViewModels;
 public partial class LoginViewModel(
     IUserRepository userRepository,
     INavigationService navigationService,
-    ILogger<LoginViewModel> logger)
+    ILogger<LoginViewModel> logger,
+    IUserSession userSession)
     : ObservableObject
 {
     private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -52,17 +53,18 @@ public partial class LoginViewModel(
             if (user != null)
             {
                 Preferences.Set("LoggedInUserId", user.Id);
+                userSession.SetUser(user);
                 _logger.LogInformation("User (ID: {UserId}) hat sich erfolgreich angemeldet.", user.Id);
 
                 switch (user.Role)
                 {
                     case UserRole.Admin:
-                        await _navigationService.NavigateToAsync("///AdminDashboardPage");
+                        await _navigationService.NavigateToAsync(Routes.AdminDashboardPage);
                         _logger.LogInformation("Navigiere zu AdminDashboardPage.");
                         break;
                     case UserRole.Doctor:
                     {
-                        await _navigationService.NavigateToAsync("///DoctorDashboardPage");
+                        await _navigationService.NavigateToAsync(Routes.DoctorDashboardPage);
                         _logger.LogInformation("Navigiere zu DoctorDashboardPage.");
                         break;
                     }
@@ -71,12 +73,12 @@ public partial class LoginViewModel(
                         var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
                         if (!anamnesisCompleted)
                         {
-                            await _navigationService.NavigateToAsync("///AnamnesisPage");
+                            await _navigationService.NavigateToAsync(Routes.AnamnesisPage);
                             _logger.LogInformation("Navigiere zu AnamnesisPage (Anamnese nicht abgeschlossen).");
                         }
                         else
                         {
-                            await _navigationService.NavigateToAsync("///HomePage");
+                            await _navigationService.NavigateToAsync(Routes.HomePage);
                             _logger.LogInformation("Navigiere zu HomePage (Anamnese abgeschlossen).");
                         }
 
@@ -103,7 +105,7 @@ public partial class LoginViewModel(
         try
         {
             _logger.LogInformation("Navigiere zur Registrierungsseite.");
-            await _navigationService.NavigateToAsync("///RegistrationPage");
+            await _navigationService.NavigateToAsync(Routes.RegistrationPage);
         }
         catch (Exception ex)
         {

@@ -1,19 +1,11 @@
 using HolisticApp.Services.Interfaces;
-using Microsoft.Maui.Controls;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace HolisticApp.Services;
 
-public class NavigationService : INavigationService
+public class NavigationService(ILogger<NavigationService> logger) : INavigationService
 {
-    private readonly ILogger<NavigationService> _logger;
-
-    public NavigationService(ILogger<NavigationService> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger<NavigationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc/>
     public async Task NavigateToAsync<TPage>() where TPage : Page

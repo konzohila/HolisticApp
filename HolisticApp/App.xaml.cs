@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using HolisticApp.Data.Interfaces;
+﻿using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using Microsoft.Extensions.Logging;
 

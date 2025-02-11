@@ -1,6 +1,3 @@
-using Microsoft.Maui.Controls;
-using System.Threading.Tasks;
-
 namespace HolisticApp.Services.Interfaces;
 
 public interface INavigationService

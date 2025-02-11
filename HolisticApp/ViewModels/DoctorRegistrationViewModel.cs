@@ -7,24 +7,19 @@ using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.ViewModels;
 
-public partial class DoctorRegistrationViewModel : ObservableObject
+public partial class DoctorRegistrationViewModel(
+    IUserRepository userRepository,
+    INavigationService navigationService,
+    ILogger<DoctorRegistrationViewModel> logger)
+    : ObservableObject
 {
-    private readonly IUserRepository _userRepository;
-    private readonly INavigationService _navigationService;
-    private readonly ILogger<DoctorRegistrationViewModel> _logger;
+    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    private readonly INavigationService _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+    private readonly ILogger<DoctorRegistrationViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     [ObservableProperty] private string _username = string.Empty;
     [ObservableProperty] private string _email = string.Empty;
     [ObservableProperty] private string _password = string.Empty;
-
-    public DoctorRegistrationViewModel(IUserRepository userRepository,
-        INavigationService navigationService,
-        ILogger<DoctorRegistrationViewModel> logger)
-    {
-        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
 
     [RelayCommand]
     public async Task RegisterAsync()

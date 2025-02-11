@@ -5,6 +5,7 @@ using HolisticApp.Models;
 using HolisticApp.Views;
 using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
+using HolisticApp.Constants;
 using HolisticApp.Services.Interfaces;
 
 namespace HolisticApp.ViewModels;
@@ -19,27 +20,27 @@ public partial class DoctorDashboardViewModel : ObservableObject
     private ObservableCollection<User> _patients;
     [ObservableProperty]
     private string _generatedInvitationLink = string.Empty;
-    public User CurrentUser { get; }
+    private readonly IUserSession _userSession;
 
-    public DoctorDashboardViewModel(User currentUser,
-        IUserRepository userRepository,
+    public DoctorDashboardViewModel(IUserRepository userRepository,
         IInvitationRepository invitationRepository,
         INavigationService navigationService,
-        ILogger<DoctorDashboardViewModel> logger)
+        ILogger<DoctorDashboardViewModel> logger, 
+        IUserSession userSession)
     {
-        CurrentUser = currentUser;
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _invitationRepository = invitationRepository ?? throw new ArgumentNullException(nameof(invitationRepository));
         _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession;
 
-        Patients = new ObservableCollection<User>();
+        Patients = [];
         GeneratedInvitationLink = string.Empty;
     }
 
-    public string UserInitials => GetInitials(CurrentUser.Username);
+    public string UserInitials => GetInitials(_userSession.CurrentUser.Username);
 
-    private string GetInitials(string fullName)
+    private string GetInitials(string? fullName)
     {
         var parts = fullName.Split(' ');
         if (parts.Length == 0)
@@ -54,13 +55,13 @@ public partial class DoctorDashboardViewModel : ObservableObject
     {
         try
         {
-            _logger.LogInformation("Doktor {DoctorId} erstellt Einladungstoken.", CurrentUser.Id);
+            _logger.LogInformation("Doktor {DoctorId} erstellt Einladungstoken.", _userSession.CurrentUser.Id);
 
             var token = Guid.NewGuid().ToString();
             var invitation = new Invitation
             {
                 Token = token,
-                MasterAccountId = CurrentUser.Id,
+                MasterAccountId = _userSession.CurrentUser.Id,
                 CreatedAt = DateTime.Now,
                 ExpiresAt = DateTime.Now.AddDays(7),
                 IsUsed = false
@@ -73,7 +74,7 @@ public partial class DoctorDashboardViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler in GenerateInvitationAsync für Doktor {DoctorId}", CurrentUser.Id);
+            _logger.LogError(ex, "Fehler in GenerateInvitationAsync für Doktor {DoctorId}", _userSession.CurrentUser.Id);
         }
     }
 
@@ -82,10 +83,10 @@ public partial class DoctorDashboardViewModel : ObservableObject
     {
         try
         {
-            _logger.LogInformation("Doktor {DoctorId} lädt Patientenliste.", CurrentUser.Id);
+            _logger.LogInformation("Doktor {DoctorId} lädt Patientenliste.", _userSession.CurrentUser.Id);
             var allUsers = await _userRepository.GetUsersAsync();
             var patientsList = allUsers
-                .Where(u => u.Role == UserRole.Patient && u.MasterAccountId == CurrentUser.Id)
+                .Where(u => u.Role == UserRole.Patient && u.MasterAccountId == _userSession.CurrentUser.Id)
                 .ToList();
 
             Patients.Clear();
@@ -97,7 +98,7 @@ public partial class DoctorDashboardViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler in LoadPatientsAsync für Doktor {DoctorId}", CurrentUser.Id);
+            _logger.LogError(ex, "Fehler in LoadPatientsAsync für Doktor {DoctorId}", _userSession.CurrentUser.Id);
         }
     }
 
@@ -109,13 +110,13 @@ public partial class DoctorDashboardViewModel : ObservableObject
             if (patient != null)
             {
                 _logger.LogInformation("Doktor {DoctorId} öffnet PatientDetailPage für Patient {PatientId}",
-                    CurrentUser.Id, patient.Id);
-                await _navigationService.NavigateToAsync("///PatientDetailPage");
+                    _userSession.CurrentUser.Id, patient.Id);
+                await _navigationService.NavigateToAsync(Routes.PatientDetailPage);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Öffnen der PatientDetailPage für Doktor {DoctorId}", CurrentUser.Id);
+            _logger.LogError(ex, "Fehler beim Öffnen der PatientDetailPage für Doktor {DoctorId}", _userSession.CurrentUser.Id);
         }
     }
 
@@ -124,17 +125,17 @@ public partial class DoctorDashboardViewModel : ObservableObject
     {
         try
         {
-            _logger.LogInformation("Doktor {DoctorId} öffnet das User-Menü.", CurrentUser.Id);
+            _logger.LogInformation("Doktor {DoctorId} öffnet das User-Menü.", _userSession.CurrentUser.Id);
             var services = Application.Current?.Handler?.MauiContext?.Services;
             if (services != null)
             {
                 var userMenuPage = services.GetRequiredService<UserMenuPage>();
-                await _navigationService.NavigateToAsync("///UserMenuPage");
+                await _navigationService.NavigateToAsync(Routes.UserMenuPage);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Doktor {DoctorId}", CurrentUser.Id);
+            _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für Doktor {DoctorId}", _userSession.CurrentUser.Id);
         }
     }
 }

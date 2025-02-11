@@ -65,7 +65,7 @@ public static class MauiProgram
         });
         
         // Registriere den NavigationService als Singleton (da Shell.Current stets verfügbar ist)
-        builder.Services.AddSingleton<Services.Interfaces.INavigationService, Services.NavigationService>();
+        builder.Services.AddSingleton<INavigationService, Services.NavigationService>();
 
         // **Datenbankverbindung initialisieren**
         var connectionString = "Server=database-1.cjs4qmoaa9sv.eu-central-1.rds.amazonaws.com;Database=holisticapp;User=admin;Password=pwpwpwpw;";
@@ -84,13 +84,16 @@ public static class MauiProgram
                 new Data.InvitationRepository(connectionString,
                     sp.GetRequiredService<ILogger<Data.InvitationRepository>>()));
         }
+        
+        builder.Services.AddSingleton<IUserSession, Services.UserSession>();
 
         // **ViewModels mit DI für Logger & Navigation registrieren**
         builder.Services.AddTransient<LoginViewModel>(sp =>
             new LoginViewModel(
                 sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
                 sp.GetRequiredService<INavigationService>(),
-                sp.GetRequiredService<ILogger<LoginViewModel>>()));
+                sp.GetRequiredService<ILogger<LoginViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
 
         builder.Services.AddTransient<RegistrationViewModel>(sp =>
             new RegistrationViewModel(
@@ -101,30 +104,30 @@ public static class MauiProgram
 
         builder.Services.AddTransient<HomeViewModel>(sp =>
             new HomeViewModel(
-                sp.GetRequiredService<Models.User>(),
                 sp.GetRequiredService<INavigationService>(),
-                sp.GetRequiredService<ILogger<HomeViewModel>>()));
+                sp.GetRequiredService<ILogger<HomeViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
 
         builder.Services.AddTransient<AnamnesisViewModel>(sp =>
             new AnamnesisViewModel(
-                sp.GetRequiredService<Models.User>(),
                 sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
                 sp.GetRequiredService<INavigationService>(),
-                sp.GetRequiredService<ILogger<AnamnesisViewModel>>()));
+                sp.GetRequiredService<ILogger<AnamnesisViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
 
         builder.Services.AddTransient<UserMenuViewModel>(sp =>
             new UserMenuViewModel(
-                sp.GetRequiredService<Models.User>(),
                 sp.GetRequiredService<INavigationService>(),
-                sp.GetRequiredService<ILogger<UserMenuViewModel>>()));
+                sp.GetRequiredService<ILogger<UserMenuViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
 
         builder.Services.AddTransient<DoctorDashboardViewModel>(sp =>
             new DoctorDashboardViewModel(
-                sp.GetRequiredService<Models.User>(),
                 sp.GetRequiredService<Data.Interfaces.IUserRepository>(),
                 sp.GetRequiredService<Data.Interfaces.IInvitationRepository>(),
                 sp.GetRequiredService<INavigationService>(),
-                sp.GetRequiredService<ILogger<DoctorDashboardViewModel>>()));
+                sp.GetRequiredService<ILogger<DoctorDashboardViewModel>>(),
+                sp.GetRequiredService<IUserSession>()));
 
         builder.Services.AddTransient<DoctorRegistrationViewModel>(sp =>
             new DoctorRegistrationViewModel(

@@ -8,7 +8,7 @@ public enum UserRole
 }
 
 public class User(
-    string username = "",
+    string? username = "",
     string email = "",
     string passwordHash = "",
     string currentComplaint = "",
@@ -20,7 +20,7 @@ public class User(
     int? masterAccountId = null)
 {
     public int Id { get; set; }
-    public string Username { get; set; } = username;
+    public string? Username { get; set; } = username;
     public string Email { get; set; } = email;
     public string PasswordHash { get; set; } = passwordHash;
     public string CurrentComplaint { get; set; } = currentComplaint;
