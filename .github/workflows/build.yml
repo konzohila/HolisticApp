@@ -1,4 +1,4 @@
-name: Build .NET MAUI Android App
+name: Build .NET MAUI Apps
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-android:
     runs-on: macos-latest
 
     steps:
@@ -19,8 +19,7 @@ jobs:
         with:
           dotnet-version: '9.0.x'  # Passe diese Version an deine installierte Version an
 
-      # Optional: Installiere OpenJDK 17 falls nötig
-      - name: Install OpenJDK 17
+      - name: Install OpenJDK 17 (Android)
         run: brew install openjdk@17
 
       - name: Set up Java Environment
@@ -31,5 +30,23 @@ jobs:
       - name: Restore .NET Workloads
         run: dotnet workload restore
 
-      - name: Build the Project
-        run: dotnet build --configuration Release
+      - name: Build Android App
+        run: dotnet build --configuration Release -f net9.0-android
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore .NET Workloads
+        run: dotnet workload restore
+
+      - name: Build macOS App
+        run: dotnet build --configuration Release -f net9.0-maccatalyst
