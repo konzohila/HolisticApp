@@ -1,23 +1,99 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
-<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
-    <!-- Globaler Label-Style -->
-    <Style TargetType="Label">
-        <Setter Property="TextColor" Value="{StaticResource TextColor}" />
-        <Setter Property="FontFamily" Value="OpenSansRegular" />
-    </Style>
-    <!-- Globaler Button-Style -->
-    <Style TargetType="Button">
-        <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
-        <Setter Property="TextColor" Value="White" />
-        <Setter Property="CornerRadius" Value="8" />
-        <Setter Property="FontFamily" Value="OpenSansSemibold" />
-    </Style>
-    <!-- Globaler Entry-Style (ohne CornerRadius) -->
-    <Style TargetType="Entry">
-        <Setter Property="BackgroundColor" Value="White" />
-        <Setter Property="TextColor" Value="{StaticResource TextColor}" />
-        <Setter Property="Margin" Value="0,5" />
-        <Setter Property="HeightRequest" Value="40" />
-    </Style>
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+  <!-- Standard-Style für Labels -->
+  <Style TargetType="Label">
+    <Setter Property="TextColor" Value="{StaticResource TextColor}" />
+    <Setter Property="FontSize">
+      <Setter.Value>
+        <OnPlatform x:TypeArguments="x:Double">
+          <On Platform="Android" Value="14" />
+          <On Platform="iOS" Value="14" />
+          <On Platform="MacCatalyst" Value="18" />
+          <On Platform="WinUI" Value="18" />
+        </OnPlatform>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Style für Überschriften (Title-Labels) -->
+  <Style x:Key="TitleLabelStyle" TargetType="Label">
+    <Setter Property="TextColor" Value="{StaticResource PrimaryColor}" />
+    <Setter Property="FontAttributes" Value="Bold" />
+    <Setter Property="FontSize">
+      <Setter.Value>
+        <OnPlatform x:TypeArguments="x:Double">
+          <On Platform="Android" Value="24" />
+          <On Platform="iOS" Value="24" />
+          <On Platform="MacCatalyst" Value="32" />
+          <On Platform="WinUI" Value="32" />
+        </OnPlatform>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Standard-Style für Buttons -->
+  <Style TargetType="Button">
+    <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}" />
+    <Setter Property="TextColor" Value="{StaticResource SecondaryColor}" />
+    <Setter Property="CornerRadius" Value="50" />
+    <Setter Property="Padding" Value="10" />
+    <Setter Property="FontSize">
+      <Setter.Value>
+        <OnPlatform x:TypeArguments="x:Double">
+          <On Platform="Android" Value="16" />
+          <On Platform="iOS" Value="16" />
+          <On Platform="MacCatalyst" Value="20" />
+          <On Platform="WinUI" Value="20" />
+        </OnPlatform>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Standard-Style für Eingabefelder (Entry) -->
+  <Style TargetType="Entry">
+    <Setter Property="TextColor" Value="{StaticResource TextColor}" />
+    <Setter Property="BackgroundColor" Value="{StaticResource SecondaryColor}" />
+    <Setter Property="Margin" Value="5" />
+    <Setter Property="FontSize">
+      <Setter.Value>
+        <OnPlatform x:TypeArguments="x:Double">
+          <On Platform="Android" Value="14" />
+          <On Platform="iOS" Value="14" />
+          <On Platform="MacCatalyst" Value="18" />
+          <On Platform="WinUI" Value="18" />
+        </OnPlatform>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Standard-Style für ContentPages -->
+  <Style TargetType="ContentPage">
+    <Setter Property="BackgroundColor" Value="{StaticResource BackgroundColor}" />
+    <Setter Property="Padding">
+      <Setter.Value>
+        <OnPlatform x:TypeArguments="Thickness">
+          <On Platform="Android" Value="10" />
+          <On Platform="iOS" Value="10" />
+          <On Platform="MacCatalyst" Value="20" />
+          <On Platform="WinUI" Value="20" />
+        </OnPlatform>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Standard-Style für Border-Steuerelemente -->
+  <Style TargetType="Border">
+    <Setter Property="Stroke" Value="{StaticResource BorderColor}" />
+    <Setter Property="StrokeThickness" Value="1" />
+    <!-- Anstatt CornerRadius direkt zu setzen, verwenden wir StrokeShape -->
+    <Setter Property="StrokeShape">
+      <Setter.Value>
+        <RoundRectangle CornerRadius="8"/>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
 </ResourceDictionary>
