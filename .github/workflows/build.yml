@@ -35,10 +35,12 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Select Xcode 16.2
+        run: sudo xcode-select -switch /Applications/Xcode_16.2.app/Contents/Developer
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
