@@ -1,84 +1,82 @@
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
+using Microsoft.Extensions.Logging;
 using MySqlConnector;
-using System;
-using System.Threading.Tasks;
 
-namespace HolisticApp.Data
+namespace HolisticApp.Data;
+
+public class InvitationRepository(string connectionString, ILogger<InvitationRepository> logger)
+    : IInvitationRepository
 {
-    public class InvitationRepository : IInvitationRepository
+    private async Task<MySqlConnection> GetConnectionAsync()
     {
-        private readonly string _connectionString;
+        var connection = new MySqlConnection(connectionString);
+        await connection.OpenAsync();
+        return connection;
+    }
 
-        public InvitationRepository(string connectionString)
+    public async Task<Invitation> CreateInvitationAsync(Invitation invitation)
+    {
+        await using var connection = await GetConnectionAsync();
+        await using var command = connection.CreateCommand();
+        try
         {
-            _connectionString = connectionString;
+            command.CommandText = @"
+                INSERT INTO Invitations (Token, MasterAccountId, CreatedAt, ExpiresAt, IsUsed)
+                VALUES (@token, @masterAccountId, @createdAt, @expiresAt, @isUsed);
+                SELECT LAST_INSERT_ID();";
+            command.Parameters.AddWithValue("@token", invitation.Token);
+            command.Parameters.AddWithValue("@masterAccountId", invitation.MasterAccountId);
+            command.Parameters.AddWithValue("@createdAt", invitation.CreatedAt);
+            command.Parameters.AddWithValue("@expiresAt", invitation.ExpiresAt);
+            command.Parameters.AddWithValue("@isUsed", invitation.IsUsed);
+
+            var result = await command.ExecuteScalarAsync();
+            if (result == null)
+                throw new InvalidOperationException("ExecuteScalarAsync returned null.");
+
+            invitation.Id = Convert.ToInt32(result);
+            logger.LogInformation("Invitation (ID: {InvitationId}) wurde erfolgreich erstellt.", invitation.Id);
+            return invitation;
         }
-
-        private async Task<MySqlConnection> GetConnectionAsync()
+        catch (Exception ex)
         {
-            var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
-            return connection;
+            logger.LogError(ex, "Fehler beim Erstellen der Invitation mit Token {Token}", invitation.Token);
+            throw;
         }
+    }
 
-        public async Task<Invitation> CreateInvitationAsync(Invitation invitation)
+    public async Task<Invitation?> GetInvitationByTokenAsync(string token)
+    {
+        await using var connection = await GetConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM Invitations WHERE Token = @token";
+        command.Parameters.AddWithValue("@token", token);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
         {
-            using (var connection = await GetConnectionAsync())
-            using (var command = connection.CreateCommand())
+            return new Invitation
             {
-                command.CommandText = @"
-                    INSERT INTO Invitations (Token, MasterAccountId, CreatedAt, ExpiresAt, IsUsed)
-                    VALUES (@token, @masterAccountId, @createdAt, @expiresAt, @isUsed);
-                    SELECT LAST_INSERT_ID();";
-                command.Parameters.AddWithValue("@token", invitation.Token);
-                command.Parameters.AddWithValue("@masterAccountId", invitation.MasterAccountId);
-                command.Parameters.AddWithValue("@createdAt", invitation.CreatedAt);
-                command.Parameters.AddWithValue("@expiresAt", invitation.ExpiresAt);
-                command.Parameters.AddWithValue("@isUsed", invitation.IsUsed);
-
-                var result = await command.ExecuteScalarAsync();
-                invitation.Id = Convert.ToInt32(result);
-                return invitation;
-            }
+                Id = Convert.ToInt32(reader["Id"]),
+                // Vermeide mögliche Nullverweiszuweisung:
+                Token = reader["Token"].ToString() ?? string.Empty,
+                MasterAccountId = Convert.ToInt32(reader["MasterAccountId"]),
+                CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
+                ExpiresAt = Convert.ToDateTime(reader["ExpiresAt"]),
+                IsUsed = Convert.ToBoolean(reader["IsUsed"])
+            };
         }
 
-        public async Task<Invitation> GetInvitationByTokenAsync(string token)
-        {
-            using (var connection = await GetConnectionAsync())
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM Invitations WHERE Token = @token";
-                command.Parameters.AddWithValue("@token", token);
+        return null;
+    }
 
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    if (await reader.ReadAsync())
-                    {
-                        return new Invitation
-                        {
-                            Id = Convert.ToInt32(reader["Id"]),
-                            Token = reader["Token"].ToString(),
-                            MasterAccountId = Convert.ToInt32(reader["MasterAccountId"]),
-                            CreatedAt = Convert.ToDateTime(reader["CreatedAt"]),
-                            ExpiresAt = Convert.ToDateTime(reader["ExpiresAt"]),
-                            IsUsed = Convert.ToBoolean(reader["IsUsed"])
-                        };
-                    }
-                }
-            }
-            return null;
-        }
-
-        public async Task MarkInvitationAsUsedAsync(int invitationId)
-        {
-            using (var connection = await GetConnectionAsync())
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "UPDATE Invitations SET IsUsed = TRUE WHERE Id = @id";
-                command.Parameters.AddWithValue("@id", invitationId);
-                await command.ExecuteNonQueryAsync();
-            }
-        }
+    public async Task MarkInvitationAsUsedAsync(int invitationId)
+    {
+        await using var connection = await GetConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE Invitations SET IsUsed = TRUE WHERE Id = @id";
+        command.Parameters.AddWithValue("@id", invitationId);
+        await command.ExecuteNonQueryAsync();
     }
 }

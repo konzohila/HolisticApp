@@ -2,13 +2,21 @@
 <ContentPage 
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    xmlns:vm="clr-namespace:HolisticApp.ViewModels"
     x:Class="HolisticApp.Views.UserMenuPage"
+    x:DataType="vm:UserMenuViewModel"
     Title="Benutzermenü"
     BackgroundColor="{StaticResource BackgroundColor}">
     
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zurück" 
+                     Order="Primary"
+                     Priority="0"
+                     Command="{Binding ReturnCommand}" />
+    </ContentPage.ToolbarItems>
+    
     <StackLayout Padding="20" Spacing="15">
-        <Label Text="{Binding CurrentUser.Username}" 
+        <Label Text="{Binding Username}" 
                FontAttributes="Bold" 
                FontSize="Large" />
         <Button Text="Info" Command="{Binding ShowInfoCommand}" />

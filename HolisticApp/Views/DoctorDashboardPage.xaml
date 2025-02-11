@@ -3,7 +3,9 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
+    xmlns:models="clr-namespace:HolisticApp.Models"
     x:Class="HolisticApp.Views.DoctorDashboardPage"
+    x:DataType="viewmodels:DoctorDashboardViewModel"
     Title="Doctor Dashboard"
     BackgroundColor="{StaticResource BackgroundColor}">
 
@@ -18,9 +20,9 @@
             <Button Text="Einladung generieren" Command="{Binding GenerateInvitationCommand}" />
             <Button Text="Patienten laden" Command="{Binding LoadPatientsCommand}" />
             <Label Text="Registrierte Patienten:" FontAttributes="Bold" />
-            <ListView x:Name="PatientsListView" ItemsSource="{Binding Patients}" ItemTapped="OnPatientTapped">
+            <ListView x:Name="PatientsListView" ItemsSource="{Binding Patients}">
                 <ListView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="models:User">
                         <ViewCell>
                             <StackLayout Padding="10">
                                 <Label Text="{Binding Username}" FontAttributes="Bold" />

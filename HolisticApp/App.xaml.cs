@@ -1,47 +1,80 @@
 ﻿using HolisticApp.Data.Interfaces;
-using HolisticApp.Models; // Für UserRole
-using HolisticApp.Views;
-using Microsoft.Maui.Storage;
+using HolisticApp.Models;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
-namespace HolisticApp
+namespace HolisticApp;
+
+public partial class App
 {
-    public partial class App : Application
+    private readonly IUserRepository _userRepository;
+    private readonly ILogger<App> _logger;
+    private readonly IUserSession _userSession;
+
+    [Obsolete("Obsolete")]
+    public App(IUserRepository userRepository, ILogger<App> logger, IUserSession userSession)
     {
-        public App(IUserRepository userRepository)
+        InitializeComponent();
+        _userRepository = userRepository;
+        _logger = logger;
+        _userSession = userSession;
+        _logger.LogInformation("Die App wurde gestartet.");
+
+        // Setze die Shell als MainPage
+        MainPage = new AppShell();
+
+        // Starte die initiale Navigation
+        InitializeAsync();
+    }
+
+    private async void InitializeAsync()
+    {
+        try
         {
-            InitializeComponent();
-
-            // Zeige zunächst eine Lade-Seite
-            MainPage = new NavigationPage(new LoadingPage());
-
-            // Starte asynchrone Initialisierung
-            InitializeAsync(userRepository);
-        }
-
-        private async void InitializeAsync(IUserRepository userRepository)
-        {
+            await Task.Delay(500); 
+            
             var userId = Preferences.Get("LoggedInUserId", 0);
-            if (userId > 0)
+            if (userId <= 0)
             {
-                var user = await userRepository.GetUserAsync(userId);
-                if (user.Role == UserRole.Doctor)
-                {
-                    MainPage = new NavigationPage(new DoctorDashboardPage(user));
-                }
-                else if (user.Role == UserRole.Admin)
-                {
-                    MainPage = new NavigationPage(new AdminDashboardPage(user));
-                }
-                else // Patient
-                {
-                    bool anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
-                    MainPage = new NavigationPage(anamnesisCompleted ? new HomePage(user) : new AnamnesisPage(user));
-                }
+                _logger.LogInformation("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
+                await Shell.Current.GoToAsync("//LoginPage");
+                return;
             }
-            else
+
+            var user = await _userRepository.GetUserAsync(userId);
+            if (user == null)
             {
-                MainPage = new NavigationPage(new LoginPage());
+                _logger.LogError("[App] Kein User für die gespeicherte ID gefunden. Navigiere zur Login-Seite.");
+                await Shell.Current.GoToAsync("//LoginPage");
+                return;
+            }
+            _userSession.SetUser(user);
+            // Navigiere basierend auf der Benutzerrolle
+            switch (user.Role)
+            {
+                case UserRole.Doctor:
+                    _logger.LogInformation("[App] User {UserId} (Doctor) gefunden. Navigiere zur DoctorDashboardPage.", user.Id);
+                    await Shell.Current.GoToAsync("//DoctorDashboardPage");
+                    break;
+                case UserRole.Admin:
+                    _logger.LogInformation("[App] User {UserId} (Admin) gefunden. Navigiere zur AdminDashboardPage.", user.Id);
+                    await Shell.Current.GoToAsync("//AdminDashboardPage");
+                    break;
+                default:
+                    var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
+                    _logger.LogInformation("[App] User {UserId} (Patient) gefunden. Anamnese abgeschlossen: {AnamnesisCompleted}", user.Id, anamnesisCompleted);
+                    if (anamnesisCompleted)
+                        await Shell.Current.GoToAsync("//HomePage");
+                    else
+                        await Shell.Current.GoToAsync("//AnamnesisPage");
+                    break;
             }
         }
-    }     
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[App] Fehler während der Initialisierung");
+            await Shell.Current.GoToAsync("//LoginPage");
+        }
+    }
 }

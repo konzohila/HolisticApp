@@ -1,15 +1,12 @@
 using HolisticApp.Models;
-using Microsoft.Maui.Controls;
 
-namespace HolisticApp.Views
+namespace HolisticApp.Views;
+
+public partial class PatientDetailPage
 {
-    public partial class PatientDetailPage : ContentPage
+    public PatientDetailPage(User? patient)
     {
-        public PatientDetailPage(User patient)
-        {
-            InitializeComponent();
-            // Setze das übergebene Patient-Objekt als BindingContext
-            BindingContext = patient;
-        }
+        InitializeComponent();
+        BindingContext = patient;
     }
 }

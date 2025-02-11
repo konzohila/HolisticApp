@@ -2,66 +2,71 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
-using Microsoft.Maui.Controls;
-using System.Threading.Tasks;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
-namespace HolisticApp.ViewModels
+namespace HolisticApp.ViewModels;
+
+public partial class DoctorRegistrationViewModel(
+    IUserRepository userRepository,
+    INavigationService navigationService,
+    ILogger<DoctorRegistrationViewModel> logger)
+    : ObservableObject
 {
-    public partial class DoctorRegistrationViewModel : ObservableObject
+    private readonly IUserRepository _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+    private readonly INavigationService _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+    private readonly ILogger<DoctorRegistrationViewModel> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+    [ObservableProperty] private string _username = string.Empty;
+    [ObservableProperty] private string _email = string.Empty;
+    [ObservableProperty] private string _password = string.Empty;
+
+    [RelayCommand]
+    private async Task RegisterAsync()
     {
-        private readonly IUserRepository _userRepository;
-        private readonly INavigation _navigation;
-
-        public DoctorRegistrationViewModel(IUserRepository userRepository, INavigation navigation)
+        var currentPage = Application.Current?.Windows[0].Page;
+        try
         {
-            _userRepository = userRepository;
-            _navigation = navigation;
-        }
-
-        // Diese Properties werden per Binding in der XAML genutzt.
-        [ObservableProperty]
-        private string username;
-
-        [ObservableProperty]
-        private string email;
-
-        [ObservableProperty]
-        private string password;
-
-        // Der Command, der beim Klick auf den Registrierungs-Button ausgelöst wird.
-        [RelayCommand]
-        public async Task RegisterAsync()
-        {
-            // Überprüfe, ob alle Felder gefüllt sind.
             if (string.IsNullOrWhiteSpace(Username) ||
                 string.IsNullOrWhiteSpace(Email) ||
                 string.IsNullOrWhiteSpace(Password))
             {
-                await App.Current.MainPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Bitte fülle alle Felder aus.", "OK");
+                _logger.LogWarning("DoctorRegistration fehlgeschlagen: Ein oder mehrere Felder sind leer.");
                 return;
             }
 
-            // Erstelle einen neuen Doktor-Account.
             var doctor = new User
             {
                 Username = Username,
                 Email = Email,
-                PasswordHash = Password, // In Produktion bitte natürlich das Passwort vorher hashen!
-                Role = UserRole.Doctor,  // Setze explizit die Rolle auf Doctor.
-                MasterAccountId = null   // Doktoren sind Master-Accounts, daher kein zugeordnetes MasterAccountId.
+                PasswordHash = Password, // In Produktion: PW hashen!
+                Role = UserRole.Doctor,
+                MasterAccountId = null
             };
 
-            // Speichere den neuen Benutzer in der Datenbank.
-            int result = await _userRepository.SaveUserAsync(doctor);
+            _logger.LogInformation("Versuche, Doktor {Name} zu registrieren.", Username);
+            var result = await _userRepository.SaveUserAsync(doctor);
             if (result > 0)
             {
-                await App.Current.MainPage.DisplayAlert("Erfolg", "Doktor erfolgreich registriert.", "OK");
-                await _navigation.PopAsync();
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Erfolg", "Doktor erfolgreich registriert.", "OK");
+                _logger.LogInformation("Doktor {Name} wurde erfolgreich registriert.", Username);
+                await _navigationService.GoBackAsync();
             }
             else
             {
-                await App.Current.MainPage.DisplayAlert("Fehler", "Fehler beim Registrieren des Doktors.", "OK");
+                if (currentPage != null)
+                    await currentPage.DisplayAlert("Fehler", "Fehler beim Registrieren des Doktors.", "OK");
+                _logger.LogError("Fehler beim Registrieren von Doktor {Name}.", Username);
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unerwarteter Fehler bei der Doktor-Registrierung für {Name}.", Username);
+            if (currentPage != null)
+                await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
         }
     }
 }

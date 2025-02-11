@@ -1,115 +1,161 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Constants;
 using HolisticApp.Data.Interfaces;
-using HolisticApp.Models;
-using HolisticApp.Views;
-using Microsoft.Maui.Storage;
-using System.Threading.Tasks;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
-namespace HolisticApp.ViewModels
+namespace HolisticApp.ViewModels;
+
+public partial class AnamnesisViewModel : ObservableObject
 {
-    public partial class AnamnesisViewModel : ObservableObject
+    private readonly IUserRepository _userRepository;
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<AnamnesisViewModel> _logger;
+    private readonly IUserSession _userSession;
+    
+    [ObservableProperty]
+    private string _age = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedGender = string.Empty;
+
+    [ObservableProperty]
+    private string _height = string.Empty;
+
+    [ObservableProperty]
+    private string _weight = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasComplaint;
+
+    [ObservableProperty]
+    private string _selectedComplaint = string.Empty;
+
+    [ObservableProperty]
+    private double _severity = 1;
+
+    public string[] GenderOptions { get; } = ["Männlich", "Weiblich", "Divers"];
+    public string[] ComplaintOptions { get; } = ["Verdauungsbeschwerden", "Kopfschmerzen", "Rückenschmerzen"];
+
+    public AnamnesisViewModel(IUserRepository userRepository,
+        INavigationService navigationService,
+        ILogger<AnamnesisViewModel> logger, IUserSession userSession)
     {
-        private readonly IUserRepository _userRepository;
-        private readonly INavigation _navigation;
-        public User CurrentUser { get; }
+        _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession;
 
-        [ObservableProperty]
-        private string age;
-
-        [ObservableProperty]
-        private string selectedGender;
-
-        [ObservableProperty]
-        private string height;
-
-        [ObservableProperty]
-        private string weight;
-
-        [ObservableProperty]
-        private bool hasComplaint;
-
-        [ObservableProperty]
-        private string selectedComplaint;
-
-        [ObservableProperty]
-        private double severity = 1;
-
-        public string[] GenderOptions { get; } = new string[] { "Männlich", "Weiblich", "Divers" };
-        public string[] ComplaintOptions { get; } = new string[] { "Verdauungsbeschwerden", "Kopfschmerzen", "Rückenschmerzen" };
-
-        public AnamnesisViewModel(User user, IUserRepository userRepository, INavigation navigation)
+        // Fülle die Felder mit aktuellen User-Daten
+        if (_userSession.CurrentUser is { Age: not null }) _age = _userSession.CurrentUser.Age.Value.ToString();
+        SelectedGender = string.IsNullOrEmpty(_userSession.CurrentUser?.Gender) ? GenderOptions[0] : _userSession.CurrentUser.Gender;
+        if (_userSession.CurrentUser != null)
         {
-            CurrentUser = user;
-            _userRepository = userRepository;
-            _navigation = navigation;
+            Height = _userSession.CurrentUser.Height?.ToString() ?? string.Empty;
+            Weight = _userSession.CurrentUser.Weight?.ToString() ?? string.Empty;
 
-            // Vorbefüllung der Felder aus dem aktuellen User
-            if (user.Age.HasValue)
-                Age = user.Age.Value.ToString();
-            SelectedGender = string.IsNullOrEmpty(user.Gender) ? GenderOptions[0] : user.Gender;
-            Height = user.Height.HasValue ? user.Height.Value.ToString() : string.Empty;
-            Weight = user.Weight.HasValue ? user.Weight.Value.ToString() : string.Empty;
-            if (!string.IsNullOrEmpty(user.CurrentComplaint) && user.CurrentComplaint != "Keine Beschwerden")
+            if (!string.IsNullOrEmpty(_userSession.CurrentUser.CurrentComplaint) &&
+                _userSession.CurrentUser.CurrentComplaint != "Keine Beschwerden")
             {
-                HasComplaint = true;
-                var parts = user.CurrentComplaint.Split(" (Stärke: ");
+                _hasComplaint = true;
+                var parts = _userSession.CurrentUser.CurrentComplaint.Split(" (Stärke: ");
                 SelectedComplaint = parts[0];
                 if (parts.Length > 1 && parts[1].EndsWith("/10)"))
                 {
                     var severityStr = parts[1].Replace("/10)", "");
-                    if (double.TryParse(severityStr, out double parsedSeverity))
-                        Severity = parsedSeverity;
+                    if (double.TryParse(severityStr, out var parsedSeverity))
+                        _severity = parsedSeverity;
                 }
             }
         }
+    }
+    
+    [RelayCommand]
+    private async Task ReturnAsync()
+    {
+        await _navigationService.GoBackAsync();
+    }
 
-        [RelayCommand]
-        public async Task SaveAsync()
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        var currentPage = Application.Current?.Windows[0].Page;
+        try
         {
-            // Validierung und Update des Users
-            if (int.TryParse(Age, out int parsedAge))
-                CurrentUser.Age = parsedAge;
-            else
-                CurrentUser.Age = null;
-
-            CurrentUser.Gender = SelectedGender;
-
-            if (decimal.TryParse(Height, out decimal parsedHeight))
-                CurrentUser.Height = parsedHeight;
-            else
-                CurrentUser.Height = null;
-
-            if (decimal.TryParse(Weight, out decimal parsedWeight))
-                CurrentUser.Weight = parsedWeight;
-            else
-                CurrentUser.Weight = null;
-
-            if (HasComplaint)
+            if (_userSession.CurrentUser != null)
             {
-                if (string.IsNullOrEmpty(SelectedComplaint))
+                if (int.TryParse(Age, out var parsedAge))
                 {
-                    await App.Current.MainPage.DisplayAlert("Fehler", "Bitte wählen Sie eine Beschwerde aus.", "OK");
-                    return;
+                    _userSession.CurrentUser.Age = parsedAge;
                 }
-                CurrentUser.CurrentComplaint = $"{SelectedComplaint} (Stärke: {Severity}/10)";
+                _userSession.CurrentUser.Gender = SelectedGender;
+
+                if (decimal.TryParse(Height, out var parsedHeight))
+                    _userSession.CurrentUser.Height = parsedHeight;
+                else
+                    _userSession.CurrentUser.Height = null;
+
+                if (decimal.TryParse(Weight, out var parsedWeight))
+                    _userSession.CurrentUser.Weight = parsedWeight;
+                else
+                    _userSession.CurrentUser.Weight = null;
+
+                if (HasComplaint)
+                {
+                    if (string.IsNullOrEmpty(SelectedComplaint))
+                    {
+                        if (currentPage != null)
+                            await currentPage.DisplayAlert("Fehler", "Bitte wählen Sie eine Beschwerde aus.", "OK");
+                        _logger.LogWarning("Anamnese konnte nicht gespeichert werden (keine Beschwerde ausgewählt).");
+                        return;
+                    }
+
+                    _userSession.CurrentUser.CurrentComplaint = $"{SelectedComplaint} (Stärke: {Severity}/10)";
+                }
+                else
+                    _userSession.CurrentUser.CurrentComplaint = "Keine Beschwerden";
             }
             else
             {
-                CurrentUser.CurrentComplaint = "Keine Beschwerden";
+                _logger.LogInformation("User konnte nicht gefunden werden.");
+                await currentPage?.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK")!;
             }
 
-            int result = await _userRepository.SaveUserAsync(CurrentUser);
-            if (result > 0)
+            if (_userSession.CurrentUser != null)
             {
-                await App.Current.MainPage.DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
-                Preferences.Set($"AnamnesisCompleted_{CurrentUser.Id}", true);
-                await _navigation.PushAsync(new HomePage(CurrentUser));
+                _logger.LogInformation("Speichere Anamnese-Infos für User {UserId}", _userSession.CurrentUser.Id);
+                var result = await _userRepository.SaveUserAsync(_userSession.CurrentUser);
+                if (result > 0)
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Erfolg", "Ihre Informationen wurden gespeichert.", "OK");
+                    Preferences.Set($"AnamnesisCompleted_{_userSession.CurrentUser.Id}", true);
+
+                    _logger.LogInformation("Anamnese erfolgreich gespeichert für User {UserId}. Navigiere HomePage.",
+                        _userSession.CurrentUser.Id);
+                    await _navigationService.NavigateToAsync(Routes.HomePage);
+                }
+                else
+                {
+                    if (currentPage != null)
+                        await currentPage.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK");
+                    _logger.LogError("Anamnese: Fehler beim Speichern in DB für User {UserId}.",
+                        _userSession.CurrentUser.Id);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            int userId;
+            if (_userSession.CurrentUser == null)
+                userId = -1;
             else
-            {
-                await App.Current.MainPage.DisplayAlert("Fehler", "Beim Speichern ist ein Fehler aufgetreten.", "OK");
-            }
+                userId = _userSession.CurrentUser.Id;
+            _logger.LogError(ex, "Unerwarteter Fehler beim Speichern der Anamnese für User {UserId}.",
+                    userId);
+            if (currentPage != null)
+                await currentPage.DisplayAlert("Fehler", "Ein unerwarteter Fehler ist aufgetreten.", "OK");
         }
     }
 }

@@ -1,35 +1,63 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using HolisticApp.Models;
-using HolisticApp.Views;
-using System.Threading.Tasks;
+using HolisticApp.Constants;
+using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
-namespace HolisticApp.ViewModels
+namespace HolisticApp.ViewModels;
+
+public partial class HomeViewModel : ObservableObject
 {
-    public partial class HomeViewModel : ObservableObject
+    private readonly INavigationService _navigationService;
+    private readonly ILogger<HomeViewModel> _logger;
+    private readonly IUserSession _userSession;
+    [ObservableProperty]
+    private string _userInitials = string.Empty;
+
+    public HomeViewModel(INavigationService navigationService,
+        ILogger<HomeViewModel> logger, IUserSession userSession)
     {
-        private readonly INavigation _navigation;
-        public User CurrentUser { get; }
+        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userSession = userSession;
 
-        [ObservableProperty]
-        private string userInitials;
+        // Initialisierung
+        UserInitials = !string.IsNullOrWhiteSpace(_userSession.CurrentUser?.Username)
+            ? _userSession.CurrentUser.Username[..1].ToUpper()
+            : string.Empty;
+    }
 
-        public HomeViewModel(User user, INavigation navigation)
+    [RelayCommand]
+    private async Task OpenAnamnesisAsync()
+    {
+        try
         {
-            CurrentUser = user;
-            _navigation = navigation;
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Öffne AnamnesisPage für User {UserId}", _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync("///AnamnesisPage");
         }
-
-        [RelayCommand]
-        public async Task OpenAnamnesisAsync()
+        catch (Exception ex)
         {
-            await _navigation.PushAsync(new AnamnesisPage(CurrentUser));
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen der AnamnesisPage für User {UserId}",
+                    _userSession.CurrentUser.Id);
         }
+    }
 
-        [RelayCommand]
-        public async Task OpenUserMenuAsync()
+    [RelayCommand]
+    private async Task OpenUserMenuAsync()
+    {
+        try
         {
-            await _navigation.PushAsync(new UserMenuPage(CurrentUser));
+            if (_userSession.CurrentUser != null)
+                _logger.LogInformation("Öffne UserMenuPage für User {UserId}", _userSession.CurrentUser.Id);
+            await _navigationService.NavigateToAsync(Routes.UserMenuPage);
+        }
+        catch (Exception ex)
+        {
+            if (_userSession.CurrentUser != null)
+                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für User {UserId}",
+                    _userSession.CurrentUser.Id);
         }
     }
 }

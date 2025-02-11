@@ -2,7 +2,9 @@
 <ContentPage 
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:HolisticApp.Models"
     x:Class="HolisticApp.Views.PatientDetailPage"
+    x:DataType="models:User"
     Title="Patient Details"
     BackgroundColor="{StaticResource BackgroundColor}">
 
@@ -16,7 +18,6 @@
             <Label Text="{Binding Height, StringFormat='Height: {0} cm'}" />
             <Label Text="{Binding Weight, StringFormat='Weight: {0} kg'}" />
             <Label Text="{Binding CurrentComplaint, StringFormat='Complaint: {0}'}" />
-            <!-- Füge bei Bedarf weitere Details hinzu -->
         </StackLayout>
     </ScrollView>
 </ContentPage>
