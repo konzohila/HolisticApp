@@ -6,6 +6,7 @@ Die HolisticApp folgt einer 3-Schichten-Architektur mit dem MVVM-Pattern (Model-
 
 Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut werden.
 
+
 ```plaintext
 ┌──────────────────────────────┐
 │      Anwendung startet       │
@@ -33,7 +34,6 @@ Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut wer
 │ - Datenbindung aktiv         │  
 │ - Nutzerinteraktion startet  │  
 └──────────────────────────────┘
-```plaintext
 
 
 3. Präsentationsschicht (UI Layer & MVVM)
