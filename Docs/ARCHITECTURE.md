@@ -5,6 +5,7 @@ Die HolisticApp folgt einer 3-Schichten-Architektur mit dem MVVM-Pattern (Model-
 2. Ablauf der Anwendung (Application Lifecycle)
 
 Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut werden.
+
 ┌──────────────────────────────┐
 │      Anwendung startet       │
 └──────────────────────────────┘
@@ -32,6 +33,7 @@ Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut wer
 │ - Nutzerinteraktion startet  │  
 └──────────────────────────────┘
 
+
 3. Präsentationsschicht (UI Layer & MVVM)
 
 Die UI-Schicht besteht aus Views (XAML), die mit ViewModels (C#-Klassen) interagieren. Sie sorgt für die Darstellung der App und verarbeitet Nutzereingaben. Die Kommunikation zwischen UI und Logik erfolgt über Binding und Commands.
@@ -47,6 +49,7 @@ ViewModels sind das Bindeglied zwischen UI und der Geschäftslogik. Sie enthalte
 3.2 Ablauf eines Login-Buttons (Schaubild)
 
 Ein Button-Klick auf “Login” folgt diesem Datenfluss:
+
 ┌──────────────────────────────┐
 │      Nutzer klickt Login     │  (UI)
 └──────────────────────────────┘
@@ -189,4 +192,5 @@ public static class MauiProgram
         return builder.Build();
     }
 }
+
 Dadurch wird lose Kopplung erreicht.
