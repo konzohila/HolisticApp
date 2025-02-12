@@ -36,6 +36,7 @@ Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut wer
 └──────────────────────────────┘
 
 
+
 3. Präsentationsschicht (UI Layer & MVVM)
 
 Die UI-Schicht besteht aus Views (XAML), die mit ViewModels (C#-Klassen) interagieren. Sie sorgt für die Darstellung der App und verarbeitet Nutzereingaben. Die Kommunikation zwischen UI und Logik erfolgt über Binding und Commands.
