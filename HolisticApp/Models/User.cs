@@ -1,37 +1,29 @@
-namespace HolisticApp.Models;
-
-public enum UserRole
+namespace HolisticApp.Models
 {
-    Patient,
-    Doctor,
-    Admin
-}
+    public enum UserRole
+    {
+        Patient,
+        Doctor,
+        Admin
+    }
 
-public class User(
-    string? username = "",
-    string email = "",
-    string passwordHash = "",
-    string currentComplaint = "",
-    string gender = "",
-    UserRole role = UserRole.Patient,
-    int? age = null,
-    decimal? height = null,
-    decimal? weight = null,
-    int? masterAccountId = null)
-{
-    public int Id { get; init; }
-    public string? Username { get; set; } = username;
-    public string Email { get; set; } = email;
-    public string PasswordHash { get; init; } = passwordHash;
-    public string CurrentComplaint { get; set; } = currentComplaint;
-    public string Gender { get; set; } = gender;
+    public class User
+    {
+        public int Id { get; init; }
+        public string? Username { get; set; }
+        public string Email { get; set; }
+        public string PasswordHash { get; init; }
+        public string CurrentComplaint { get; set; }
+        public string Gender { get; set; }
+        public int? Age { get; set; }
+        public decimal? Height { get; set; }
+        public decimal? Weight { get; set; }
+        public UserRole Role { get; set; }
+        public int? MasterAccountId { get; set; }
+        
+        public string? LinkedDoctorName { get; set; }
 
-    public int? Age { get; set; } = age;
-    public decimal? Height { get; set; } = height;
-    public decimal? Weight { get; set; } = weight;
-
-    public UserRole Role { get; set; } = role;
-    public int? MasterAccountId { get; set; } = masterAccountId;
-    public override string ToString() =>
-        $"{Username} ({Email}) - {Gender}, {Age?.ToString() ?? "N/A"} Jahre, {Role}";
+        public override string ToString() =>
+            $"{Username} ({Email}) - {Gender}, {Age?.ToString() ?? "N/A"} Jahre, {Role}";
+    }
 }

@@ -2,8 +2,8 @@
 <ContentPage 
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    x:Class="HolisticApp.Views.UserMenuPage"
-    Title="Benutzermenü">
+    x:Class="HolisticApp.Views.SettingsPage"
+    Title="Einstellungen">
     
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Zurück" 
@@ -13,9 +13,8 @@
     </ContentPage.ToolbarItems>
     
     <StackLayout Padding="20" Spacing="15">
-        <Label Text="{Binding Username}" FontAttributes="Bold" FontSize="Large" />
-        <Button Text="Info" Command="{Binding ShowInfoCommand}" />
-        <Button Text="Einstellungen" Command="{Binding ShowSettingsCommand}" />
-        <Button Text="Logout" Command="{Binding LogoutCommand}" />
+        <Label Text="Push-Benachrichtigungen" FontAttributes="Bold" />
+        <Switch IsToggled="{Binding NotificationsEnabled, Mode=TwoWay}" />
+        <Button Text="Account löschen" Command="{Binding DeleteAccountCommand}" TextColor="White" BackgroundColor="Red" />
     </StackLayout>
 </ContentPage>

@@ -1,30 +1,26 @@
-﻿using HolisticApp.Data.Interfaces;
-using HolisticApp.Models;
+﻿using HolisticApp.Constants;
 using HolisticApp.Services.Interfaces;
-using Microsoft.Extensions.Configuration;
+using HolisticApp.Models;
 using Microsoft.Extensions.Logging;
 
 namespace HolisticApp;
 
 public partial class App
 {
-    private readonly IUserRepository _userRepository;
+    private readonly IUserService _userService;
     private readonly ILogger<App> _logger;
-    private readonly IUserSession _userSession;
+    private readonly INavigationService _navigationService;
 
     [Obsolete("Obsolete")]
-    public App(IUserRepository userRepository, ILogger<App> logger, IUserSession userSession)
+    public App(IUserService userService, ILogger<App> logger, INavigationService navigationService)
     {
         InitializeComponent();
-        _userRepository = userRepository;
+        _userService = userService;
         _logger = logger;
-        _userSession = userSession;
+        _navigationService = navigationService;
         _logger.LogInformation("Die App wurde gestartet.");
 
-        // Setze die Shell als MainPage
         MainPage = new AppShell();
-
-        // Starte die initiale Navigation
         InitializeAsync();
     }
 
@@ -32,49 +28,34 @@ public partial class App
     {
         try
         {
-            await Task.Delay(500); 
-            
-            var userId = Preferences.Get("LoggedInUserId", 0);
-            if (userId <= 0)
+            await Task.Delay(500);
+            var user = await _userService.GetLoggedInUserAsync();
+            if (user == null)
             {
                 _logger.LogInformation("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
-                await Shell.Current.GoToAsync("//LoginPage");
+                await _navigationService.NavigateToAsync(Routes.LoginPage);
                 return;
             }
 
-            var user = await _userRepository.GetUserAsync(userId);
-            if (user == null)
-            {
-                _logger.LogError("[App] Kein User für die gespeicherte ID gefunden. Navigiere zur Login-Seite.");
-                await Shell.Current.GoToAsync("//LoginPage");
-                return;
-            }
-            _userSession.SetUser(user);
-            // Navigiere basierend auf der Benutzerrolle
+            _logger.LogInformation("[App] User {UserId} ({Role}) gefunden.", user.Id, user.Role);
             switch (user.Role)
             {
                 case UserRole.Doctor:
-                    _logger.LogInformation("[App] User {UserId} (Doctor) gefunden. Navigiere zur DoctorDashboardPage.", user.Id);
-                    await Shell.Current.GoToAsync("//DoctorDashboardPage");
+                    await _navigationService.NavigateToAsync(Routes.DoctorDashboardPage);
                     break;
                 case UserRole.Admin:
-                    _logger.LogInformation("[App] User {UserId} (Admin) gefunden. Navigiere zur AdminDashboardPage.", user.Id);
-                    await Shell.Current.GoToAsync("//AdminDashboardPage");
+                    await _navigationService.NavigateToAsync(Routes.AdminDashboardPage);
                     break;
                 default:
-                    var anamnesisCompleted = Preferences.Get($"AnamnesisCompleted_{user.Id}", false);
-                    _logger.LogInformation("[App] User {UserId} (Patient) gefunden. Anamnese abgeschlossen: {AnamnesisCompleted}", user.Id, anamnesisCompleted);
-                    if (anamnesisCompleted)
-                        await Shell.Current.GoToAsync("//HomePage");
-                    else
-                        await Shell.Current.GoToAsync("//AnamnesisPage");
+                    var anamnesisCompleted = await _userService.IsAnamnesisCompletedAsync();
+                    await _navigationService.NavigateToAsync(anamnesisCompleted ? Routes.HomePage : Routes.AnamnesisPage);
                     break;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[App] Fehler während der Initialisierung");
-            await Shell.Current.GoToAsync("//LoginPage");
+            _logger.LogError(ex, "[App] Fehler während der Initialisierung.");
+            await _navigationService.NavigateToAsync(Routes.LoginPage);
         }
     }
 }

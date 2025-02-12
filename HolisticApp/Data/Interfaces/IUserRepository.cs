@@ -4,8 +4,10 @@ namespace HolisticApp.Data.Interfaces;
 
 public interface IUserRepository
 {
-    Task<List<User>> GetUsersAsync();
-    Task<User?> GetUserAsync(int id); // Nullable Rückgabetyp, da kein User gefunden werden kann.
-    Task<int> SaveUserAsync(User user);
-    Task<int> DeleteUserAsync(int id);
+    Task<bool> SaveUserAsync(string username, string email, string password);
+    Task<bool> DeleteUserAsync(int id);
+    Task<bool> UpdateUserAsync(User user);
+    Task<bool> IsUserInDatabaseAsync(string emailOrUsername);
+    Task<List<User>> FindUsersByRole(UserRole role);
+    Task<AuthenticateResult> AuthenticateUser(string emailOrUsername, string password);
 }

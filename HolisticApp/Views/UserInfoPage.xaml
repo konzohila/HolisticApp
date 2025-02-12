@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="HolisticApp.Views.UserInfoPage"
+    Title="Benutzerinformationen">
+    
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Zurück" 
+                     Order="Primary"
+                     Priority="0"
+                     Command="{Binding ReturnCommand}" />
+    </ContentPage.ToolbarItems>
+    
+    <ScrollView>
+        <StackLayout Padding="20" Spacing="10">
+            <Label Text="{Binding Username}" FontSize="24" FontAttributes="Bold"/>
+            <Label Text="{Binding Email}" />
+            <Label Text="{Binding Age}" />
+            <Label Text="{Binding Gender}" />
+            <Label Text="{Binding Height}" />
+            <Label Text="{Binding Weight}" />
+            <Label Text="{Binding Complaint}" />
+            <Label Text="{Binding Doctor}" />
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
