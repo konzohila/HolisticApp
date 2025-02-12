@@ -6,6 +6,7 @@ Die HolisticApp folgt einer 3-Schichten-Architektur mit dem MVVM-Pattern (Model-
 
 Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut werden.
 
+```plaintext
 ┌──────────────────────────────┐
 │      Anwendung startet       │
 └──────────────────────────────┘
@@ -32,6 +33,7 @@ Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut wer
 │ - Datenbindung aktiv         │  
 │ - Nutzerinteraktion startet  │  
 └──────────────────────────────┘
+
 
 
 3. Präsentationsschicht (UI Layer & MVVM)
@@ -87,6 +89,7 @@ Ein Button-Klick auf “Login” folgt diesem Datenfluss:
 │ - ViewModel aktualisiert UI  │  
 │ - Navigation zur HomePage    │  
 └──────────────────────────────┘
+
 
 3.3 Code Beispiel für LoginViewModel
 public partial class LoginViewModel : BaseViewModel
