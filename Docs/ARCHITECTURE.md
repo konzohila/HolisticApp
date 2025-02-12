@@ -6,7 +6,6 @@ Die HolisticApp folgt einer 3-Schichten-Architektur mit dem MVVM-Pattern (Model-
 
 Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut werden.
 
-```plaintext
 ┌──────────────────────────────┐
 │      Anwendung startet       │
 └──────────────────────────────┘
@@ -92,6 +91,7 @@ Ein Button-Klick auf “Login” folgt diesem Datenfluss:
 
 
 3.3 Code Beispiel für LoginViewModel
+
 public partial class LoginViewModel : BaseViewModel
 {
     [ObservableProperty]
@@ -139,6 +139,7 @@ Die BLL-Schicht verarbeitet alle Geschäftsregeln und hält die App von der Date
 4.1 UserService – Verarbeitung von Logik
 
 Beispiel für die Authentifizierung eines Benutzers:
+
 public async Task<LoginResult> LoginAsync(string emailOrUsername, string password)
 {
     var result = await _userRepository.AuthenticateUser(emailOrUsername, password);
@@ -154,6 +155,7 @@ public async Task<LoginResult> LoginAsync(string emailOrUsername, string passwor
 Die DAL-Schicht kommuniziert mit der Datenbank und führt CRUD-Operationen durch.
 
 5.1 UserRepository – Datenbankzugriff
+
 public async Task<User?> GetUserByEmailAsync(string email)
 {
     await using var connection = await GetConnectionAsync();
@@ -176,6 +178,7 @@ Das Factory Pattern wird in MauiProgram.cs genutzt, um Instanzen bereitzustellen
 Das Factory Pattern wird verwendet, um eine zentrale DI-Konfiguration zu schaffen. Alle Abhängigkeiten werden in einer einzigen Methode registriert.
 
 6.2 Implementierung
+
 public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
