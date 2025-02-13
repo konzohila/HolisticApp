@@ -1,210 +1,211 @@
-📌 HolisticApp – Architekturübersicht
+# 1. Gesamtarchitektur der Anwendung
 
-Diese Anwendung basiert auf einer 3-Schichten-Architektur und folgt dem MVVM-Muster (Model-View-ViewModel). Sie nutzt Dependency Injection (DI), das Factory-Pattern zur vereinfachten Bereitstellung von ViewModels und das Repository-Pattern für den Zugriff auf die Datenbank.
+Die **HolisticApp** folgt einer **3-Schichten-Architektur** mit dem **MVVM-Pattern** (Model-View-ViewModel).  
+Dies sorgt für eine klare Trennung von **UI, Geschäftslogik und Datenzugriff** und ermöglicht eine gute **Wartbarkeit, Testbarkeit und Skalierbarkeit**.
 
+# 2. Ablauf der Anwendung (Application Lifecycle)
 
-1️⃣ Die 3-Schichten-Architektur
-
-Die Anwendung ist in drei klare Schichten unterteilt, um eine saubere Trennung der Verantwortlichkeiten (Separation of Concerns) zu gewährleisten:
-
-🔹 Schicht 1 – Präsentationsschicht (UI & ViewModels)
-
-➡ Was passiert hier?
-    •    Diese Schicht umfasst die XAML-Views (Benutzeroberfläche) und die dazugehörigen ViewModels, die für die Datenbindung und Geschäftslogik der UI zuständig sind.
-    •    ViewModels greifen NICHT direkt auf die Datenbank zu! Sie interagieren nur mit den Services der zweiten Schicht.
-
-➡ Wer nutzt was?
-    •    Views (XAML) nutzen nur ihre ViewModels.
-    •    ViewModels nutzen ausschließlich Services aus Schicht 2.
-
-➡ Regeln:
-✅ Views dürfen nur das ViewModel als BindingContext setzen.
-✅ Kein Code-Behind außer InitializeComponent() in den Views!
-✅ Keine direkte Datenbankabfragen oder Geschäftslogik in der UI!
-
-🔹 Schicht 2 – Service-Schicht (Geschäftslogik)
-
-➡ Was passiert hier?
-    •    Diese Schicht verwaltet die gesamte Geschäftslogik der App.
-    •    Services wie UserService verwalten Benutzeroperationen (Login, Logout, Benutzer laden/löschen).
-    •    Sie greifen nur über Repository-Schnittstellen (IUserRepository) auf die Datenbank zu.
-
-➡ Wer nutzt was?
-    •    ViewModels nutzen Services.
-    •    Services nutzen nur Repositories (Schicht 3).
-
-➡ Regeln:
-✅ Services verwalten ALLE Geschäftslogik.
-✅ Services kapseln den Zugriff auf Repositories.
-✅ ViewModels dürfen keine Datenbankzugriffe durchführen!
-
-🔹 Schicht 3 – Datenzugriffsschicht (Repositories & Models)
-
-➡ Was passiert hier?
-    •    Diese Schicht kapselt den direkten Zugriff auf die Datenbank.
-    •    Das Repository-Pattern wird verwendet, um eine lose Kopplung zu gewährleisten.
-    •    Die UserRepository-Klasse kommuniziert mit der Datenbank und liefert User-Objekte zurück.
-
-➡ Wer nutzt was?
-    •    Services greifen auf Repositories zu.
-    •    Repositories arbeiten mit der Datenbank und geben Models zurück.
-
-➡ Regeln:
-✅ Repositories sind die einzige Schicht, die direkten Datenbankzugriff hat.
-✅ Repositories sollten keine Geschäftslogik enthalten.
-✅ Repositories liefern nur Datenmodelle zurück.
+Die folgende Grafik zeigt, wie die Anwendung startet und die Views aufgebaut werden.
 
 
-2️⃣ Factory-Pattern & Dependency Injection (DI)
+```plaintext
+┌──────────────────────────────┐
+│      Anwendung startet       │
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│    App.xaml.cs (Factory)     │  
+│ - Setzt DI-Container auf     │  
+│ - Initialisiert Logging      │  
+│ - Erstellt AppShell          │  
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│      MainPage = AppShell     │  
+│ - Verwaltet Navigation       │  
+│ - Definiert Hauptlayout      │  
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│    Views & ViewModels        │  
+│ - ViewModels werden erstellt │  
+│ - Datenbindung aktiv         │  
+│ - Nutzerinteraktion startet  │  
+└──────────────────────────────┘
+```
+# 3. Präsentationsschicht (UI Layer & MVVM)
 
-In der MauiProgram.cs werden alle Services, Repositories und ViewModels automatisch über DI registriert.
+Die UI-Schicht besteht aus Views (XAML), die mit ViewModels (C#-Klassen) interagieren.
+Sie sorgt für die Darstellung der App und verarbeitet Nutzereingaben.
+Die Kommunikation zwischen UI und Logik erfolgt über Binding und Commands.
 
-🔹 Factory-Pattern für ViewModels
+## 3.1 ViewModels & ihre Rolle
 
-Wir nutzen eine Factory-Methode, um ViewModels automatisch mit NavigationService, UserService und Logger zu versorgen.
+ViewModels sind das Bindeglied zwischen UI und Geschäftslogik.
+Sie enthalten keine UI-spezifische Logik, sondern:
 
-📌 Vorteile des Factory-Patterns in DI:
-✅ Kein Boilerplate-Code mehr für DI in jedem ViewModel.
-✅ ViewModels müssen ihre Abhängigkeiten nicht selbst instanziieren.
-✅ Änderungen in der Service-Struktur müssen nur an einer Stelle erfolgen.
+Bereiten Daten für die UI auf.
+Handhaben UI-Interaktionen (z. B. Button-Klicks).
+Rufen Services auf, um Daten zu verarbeiten.
+Halten die UI synchron mit dem Datenmodell (Model).
 
-📌 Beispiel:
-📍 Datei: Helpers/ServiceCollectionExtensions.cs
-public static IServiceCollection AddViewModel<TViewModel>(this IServiceCollection services)
-    where TViewModel : class
+## 3.2 Ablauf eines Login-Buttons (Schaubild)
+
+Beim Drücken des Login-Buttons wird ein Command aufgerufen, das die Benutzeranmeldung ausführt.
+Dabei erfolgt die Verarbeitung in mehreren Schichten von der UI über das ViewModel bis zur Datenbank.
+```plaintext
+┌──────────────────────────────┐
+│      Nutzer klickt Login     │  (UI)
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│   XAML ruft Command auf      │  
+│ - {Binding LoginCommand}     │  
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│  LoginViewModel (Schicht 1)  │  
+│ - Führt Validierung durch    │  
+│ - Ruft UserService auf       │  
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│  UserService (Schicht 2)     │  
+│ - Prüft Benutzerdaten        │  
+│ - Ruft UserRepository auf    │  
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│  UserRepository (Schicht 3)  │  
+│ - Fragt Datenbank ab         │  
+│ - Gibt Ergebnis zurück       │  
+└──────────────────────────────┘
+            │  
+            ▼
+┌──────────────────────────────┐
+│  Daten zurück zum UI         │  
+│ - ViewModel aktualisiert UI  │  
+│ - Navigation zur HomePage    │  
+└──────────────────────────────┘
+```
+## 3.3 Code Beispiel für LoginViewModel
+```plaintext
+public partial class LoginViewModel : BaseViewModel
 {
-    services.AddTransient<TViewModel>(sp =>
+    [ObservableProperty]
+    private string _emailOrUsername = string.Empty;
+
+    [ObservableProperty]
+    private string _password = string.Empty;
+
+    public LoginViewModel(INavigationService navigationService, IUserService userService, ILogger<LoginViewModel> logger)
+        : base(navigationService, userService, logger)
     {
-        var navigationService = sp.GetRequiredService<INavigationService>();
-        var userService = sp.GetRequiredService<IUserService>();
-        var logger = sp.GetRequiredService<ILogger<TViewModel>>();
-
-        return Activator.CreateInstance(typeof(TViewModel), navigationService, userService, logger) as TViewModel
-            ?? throw new InvalidOperationException($"Fehler beim Erstellen von {typeof(TViewModel).Name}");
-    });
-
-    return services;
-}
-
-📍 MauiProgram.cs – Registrieren der ViewModels mit Factory-Methode
-public static MauiApp CreateMauiApp()
-{
-    var builder = MauiApp.CreateBuilder();
-
-    builder.Services.AddSingleton<IUserRepository, UserRepository>();
-    builder.Services.AddSingleton<IUserService, UserService>();
-    builder.Services.AddSingleton<INavigationService, NavigationService>();
-    builder.Services.AddSingleton<SessionUser>();
-
-    // Automatische DI für ViewModels
-    builder.Services.AddViewModel<LoginViewModel>();
-    builder.Services.AddViewModel<HomeViewModel>();
-    builder.Services.AddViewModel<SettingsViewModel>();
-
-    return builder.Build();
-}
-
-
-3️⃣ Repository-Pattern im UserRepository
-
-📌 Warum Repository-Pattern?
-✅ Trennung von Geschäftslogik und Datenbankzugriff.
-✅ Erleichtert das Testen (z. B. durch Mocking von IUserRepository).
-✅ Erlaubt den späteren Wechsel der Datenquelle ohne Änderungen in der Service-Schicht.
-
-📍 Datei: Data/UserRepository.cs
-public class UserRepository : IUserRepository
-{
-    private readonly string _connectionString;
-    private readonly ILogger<UserRepository> _logger;
-
-    public UserRepository(string connectionString, ILogger<UserRepository> logger)
-    {
-        _connectionString = connectionString;
-        _logger = logger;
     }
 
-    public async Task<User?> GetUserAsync(int id)
+    [RelayCommand]
+    private async Task LoginAsync()
     {
-        try
+        if (string.IsNullOrWhiteSpace(EmailOrUsername) || string.IsNullOrWhiteSpace(Password))
         {
-            using var connection = new MySqlConnection(_connectionString);
-            await connection.OpenAsync();
+            await Application.Current.MainPage.DisplayAlert("Fehler", "Bitte alle Felder ausfüllen!", "OK");
+            return;
+        }
 
-            var command = new MySqlCommand("SELECT * FROM Users WHERE Id = @id", connection);
-            command.Parameters.AddWithValue("@id", id);
+        Logger.LogInformation("Login-Versuch für {EmailOrUsername}", EmailOrUsername);
+        var result = await UserService.LoginAsync(EmailOrUsername, Password);
 
-            using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
+        switch (result.Status)
+        {
+            case LoginStatus.Success:
+                await NavigationService.NavigateToAsync(Routes.HomePage);
+                break;
+            case LoginStatus.UserNotFound:
+                await Application.Current.MainPage.DisplayAlert("Fehler", "Benutzer nicht gefunden!", "OK");
+                break;
+            case LoginStatus.InvalidPassword:
+                await Application.Current.MainPage.DisplayAlert("Fehler", "Passwort inkorrekt!", "OK");
+                break;
+        }
+    }
+}
+```
+# 4. Geschäftslogikschicht (Business Logic Layer - BLL)
+
+Die BLL-Schicht verarbeitet alle Geschäftsregeln und hält die App von der Datenbank unabhängig.
+
+## 4.1 UserService – Verarbeitung von Logik
+
+Ein UserService stellt sicher, dass Geschäftslogik getrennt vom Datenzugriff bleibt.
+Hier ein Beispiel für die Authentifizierung eines Benutzers:
+```plaintext
+public async Task<LoginResult> LoginAsync(string emailOrUsername, string password)
+{
+    var result = await _userRepository.AuthenticateUser(emailOrUsername, password);
+    if (result.IsAuthenticated)
+    {
+        return new LoginResult(result.User, LoginStatus.Success);
+    }
+    return new LoginResult(null, LoginStatus.InvalidPassword);
+}
+```
+# 5. Datenzugriffsschicht (Data Access Layer - DAL)
+
+Die DAL-Schicht kommuniziert mit der Datenbank und führt CRUD-Operationen durch.
+
+## 5.1 UserRepository – Datenbankzugriff
+
+Hier ein Beispiel für eine Methode, die einen Benutzer anhand der E-Mail-Adresse aus der Datenbank lädt:
+```plaintext
+public async Task<User?> GetUserByEmailAsync(string email)
+{
+    await using var connection = await GetConnectionAsync();
+    await using var command = connection.CreateCommand();
+    command.CommandText = "SELECT * FROM Users WHERE Email = @email";
+    command.Parameters.AddWithValue("@email", email);
+
+    await using var reader = await command.ExecuteReaderAsync();
+    return await reader.ReadAsync() ? CreateUserFromReader(reader) : null;
+}
+```
+Hier wird sichergestellt, dass asynchron auf die Datenbank zugegriffen wird.
+
+# 6. Factory Pattern in App.xaml.cs
+
+Das Factory Pattern wird in MauiProgram.cs genutzt, um Instanzen bereitzustellen.
+
+## 6.1 Erklärung
+
+Das Factory Pattern wird verwendet, um eine zentrale DI-Konfiguration zu schaffen.
+Alle Abhängigkeiten werden in einer einzigen Methode registriert.
+
+## 6.2 Implementierung
+```plaintext
+public static class MauiProgram
+{
+    public static MauiApp CreateMauiApp()
+    {
+        var builder = MauiApp.CreateBuilder();
+        builder
+            .UseMauiApp<App>()
+            .ConfigureFonts(fonts =>
             {
-                return new User
-                {
-                    Id = reader.GetInt32("Id"),
-                    Email = reader.GetString("Email"),
-                    Username = reader.GetString("Username")
-                };
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Abrufen des Benutzers mit ID {UserId}", id);
-        }
-        return null;
+                fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+            });
+
+        // Dependency Injection
+        builder.Services.AddSingleton<IUserService, UserService>();
+        builder.Services.AddSingleton<INavigationService, NavigationService>();
+
+        return builder.Build();
     }
 }
-
-
-4️⃣ MVVM: Klare Trennung zwischen UI, Logik und Daten
-
-📌 Warum MVVM?
-✅ Saubere Trennung von UI, Logik und Daten.
-✅ Vermeidung von Code-Behind in den Views.
-✅ Bessere Testbarkeit (ViewModels sind unabhängig von UI).
-
-📍 Beispiel für eine XAML-View
-<ContentPage 
-    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:viewmodels="clr-namespace:HolisticApp.ViewModels"
-    x:Class="HolisticApp.Views.LoginPage"
-    x:DataType="viewmodels:LoginViewModel"
-    Title="Login">
-    
-    <Entry Text="{Binding EmailOrUsername}" Placeholder="Email oder Benutzername" />
-    <Entry Text="{Binding Password}" IsPassword="True" Placeholder="Passwort" />
-    <Button Text="Login" Command="{Binding LoginCommand}" />
-</ContentPage>
-
-📍 Code-Behind (LoginPage.xaml.cs)
-public partial class LoginPage
-{
-    public LoginPage(LoginViewModel vm)
-    {
-        InitializeComponent();
-        BindingContext = vm;
-    }
-}
-
-✅ Kein Code-Behind außer InitializeComponent() und Setzen des BindingContext!
-
-
-5️⃣ Vererbung von BaseViewModel
-
-📌 Warum?
-✅ Vermeidet redundanten Code in allen ViewModels.
-✅ Erleichtert die Nutzung von Standard-Diensten (Navigation, Logging).
-
-📍 BaseViewModel.cs
-public abstract class BaseViewModel : ObservableObject
-{
-    protected readonly INavigationService NavigationService;
-    protected readonly IUserService UserService;
-    protected readonly ILogger Logger;
-
-    protected BaseViewModel(INavigationService navigationService, IUserService userService, ILogger logger)
-    {
-        NavigationService = navigationService;
-        UserService = userService;
-        Logger = logger;
-    }
-}
+```
+Dadurch wird eine lose Kopplung erreicht.3. Präsentationsschicht (UI Layer & MVVM)
