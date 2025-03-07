@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Constants;
 using HolisticApp.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using HolisticApp.Models;
 
 namespace HolisticApp.ViewModels;
 

@@ -30,14 +30,18 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
+        
+        var connectionString = "Server=10.0.2.2;Database=holisticapp;User=root;Password=;";
 
         // Logging konfigurieren
         builder.Logging.ClearProviders();
         builder.Logging.AddSerilog();
 
         // **DI-Registrierungen**
+        builder.Services.AddSingleton(connectionString);
         builder.Services.AddSingleton<INavigationService, Services.NavigationService>();
         builder.Services.AddSingleton<IUserService, Services.UserService>();
+        builder.Services.AddSingleton<IUserRepository, Data.UserRepository>();
 
         // **ViewModels**
         builder.Services.AddTransient<LoginViewModel>();

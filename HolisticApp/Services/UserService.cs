@@ -11,7 +11,8 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly ILogger<UserService> _logger;
     private User? _loggedInUser;
-
+    public User? LoggedInUser => _loggedInUser;
+    
     public UserService(IUserRepository userRepository, ILogger<UserService> logger)
     {
         _userRepository = userRepository;
@@ -62,15 +63,14 @@ public class UserService : IUserService
             if (exists)
             {
                 var result = await _userRepository.AuthenticateUser(emailOrUsername, password);
-                if (!result.IsAuthenticated)
+                if (result.IsAuthenticated)
                 {
+                    _loggedInUser = result.User;
                     _logger.LogInformation($"Benutzer {emailOrUsername} wurde erfolgreich eingeloggt");
                     return (new LoginResult(result.User, LoginStatus.Success));
                 }
-                {
-                    _logger.LogInformation($"Für Benutzer {emailOrUsername} wurde beim Loginversuch das falsche Passwort angegeben");
-                    return (new LoginResult(result.User, LoginStatus.InvalidPassword));
-                }
+                _logger.LogInformation($"Für Benutzer {emailOrUsername} wurde beim Loginversuch das falsche Passwort angegeben");
+                return (new LoginResult(result.User, LoginStatus.InvalidPassword));
             }
             _logger.LogInformation($"Es wurde versucht einen unbekannten User einzuloggen: {emailOrUsername}");
             return (new LoginResult(null, LoginStatus.UserNotFound));

@@ -64,6 +64,13 @@ public partial class LoginViewModel : BaseViewModel
             case LoginStatus.Error:
                 await Application.Current.MainPage.DisplayAlert("Fehler", "Beim Login ist ein Fehler aufgetreten!", "OK")!;
                 break;
-            }
         }
     }
+    
+    [RelayCommand]
+    private async Task RegisterAsync()
+    {
+        await NavigationService.NavigateToAsync(Routes.RegistrationPage);
+    }
+}
+    

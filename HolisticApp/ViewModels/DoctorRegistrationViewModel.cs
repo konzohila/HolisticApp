@@ -1,7 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using HolisticApp.Constants;
-using HolisticApp.Models;
 using HolisticApp.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 

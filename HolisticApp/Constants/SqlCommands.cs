@@ -3,24 +3,24 @@ namespace HolisticApp.Constants;
 public class SqlCommands
 {
     public const string SelectUserByIdSql = @"
-            SELECT Id, Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, MasterAccountId, Role 
+            SELECT Id, Username, Email, password_hash, current_complaint, Age, Gender, Height, Weight, master_account_id, Role 
             FROM Users WHERE Id = @id";
 
     public const string SelectUserByEmailOrUsernameSql = @"
-            SELECT Id, Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, MasterAccountId, Role 
+            SELECT Id, Username, Email, password_hash, current_complaint, Age, Gender, Height, Weight, master_account_id, Role 
             FROM Users WHERE Email = @value OR Username = @value";
 
     public const string InsertUserSql = @"
             INSERT INTO Users 
-            (Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, Role)
-            VALUES (@username, @email, @passwordHash, @currentComplaint, @age, @gender, @height, @weight, @role)";
+            (Username, Email, password_hash, current_complaint, Age, Gender, Height, Weight, Role)
+            VALUES (@username, @email, @password_hash, @current_complaint, @age, @gender, @height, @weight, @role)";
 
     public const string UpdateUserSql = @"
             UPDATE Users
             SET Username = @username, 
                 Email = @email, 
-                PasswordHash = @passwordHash,
-                CurrentComplaint = @currentComplaint,
+                PasswordHash = @password_hash,
+                CurrentComplaint = @current_complaint,
                 Age = @age,
                 Gender = @gender,
                 Height = @height,
@@ -36,6 +36,6 @@ public class SqlCommands
             WHERE Email = @value OR Username = @value";
 
     public const string SelectUsersByRoleSql = @"
-            SELECT Id, Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, MasterAccountId, Role 
+            SELECT Id, Username, Email, password_hash, current_complaint, Age, Gender, Height, Weight, master_account_id, Role 
             FROM Users WHERE Role = @role";
 }
