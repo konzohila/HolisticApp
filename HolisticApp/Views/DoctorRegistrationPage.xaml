@@ -7,8 +7,15 @@
     x:DataType="viewmodels:DoctorRegistrationViewModel"
     Title="Ärzte Registrierung"
     BackgroundColor="{StaticResource BackgroundColor}">
+       
+       <ContentPage.ToolbarItems>
+              <ToolbarItem Text="Zurück" 
+                           Order="Primary"
+                           Priority="0"
+                           Command="{Binding ReturnCommand}" />
+       </ContentPage.ToolbarItems>
 
-    <ScrollView>
+       <ScrollView>
         <StackLayout Padding="30" Spacing="20" VerticalOptions="Center">
             <Label Text="Registrierung als Arzt/Therapeut" 
                    FontSize="24" 

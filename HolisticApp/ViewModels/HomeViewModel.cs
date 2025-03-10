@@ -6,58 +6,25 @@ using Microsoft.Extensions.Logging;
 
 namespace HolisticApp.ViewModels;
 
-public partial class HomeViewModel : ObservableObject
+public partial class HomeViewModel : BaseViewModel
 {
-    private readonly INavigationService _navigationService;
-    private readonly ILogger<HomeViewModel> _logger;
-    private readonly IUserSession _userSession;
     [ObservableProperty]
     private string _userInitials = string.Empty;
 
-    public HomeViewModel(INavigationService navigationService,
-        ILogger<HomeViewModel> logger, IUserSession userSession)
+    public HomeViewModel(INavigationService navigationService, IUserService userService, ILogger<HomeViewModel> logger)
+        : base(navigationService, userService, logger)
     {
-        _navigationService = navigationService ?? throw new ArgumentNullException(nameof(navigationService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _userSession = userSession;
+    }
 
-        // Initialisierung
-        UserInitials = !string.IsNullOrWhiteSpace(_userSession.CurrentUser?.Username)
-            ? _userSession.CurrentUser.Username[..1].ToUpper()
-            : string.Empty;
+    public async Task InitializeAsync()
+    {
+        var user = await UserService.GetLoggedInUserAsync();
+        UserInitials = user?.Username?.Substring(0, 1).ToUpper() ?? string.Empty;
     }
 
     [RelayCommand]
-    private async Task OpenAnamnesisAsync()
-    {
-        try
-        {
-            if (_userSession.CurrentUser != null)
-                _logger.LogInformation("Öffne AnamnesisPage für User {UserId}", _userSession.CurrentUser.Id);
-            await _navigationService.NavigateToAsync("///AnamnesisPage");
-        }
-        catch (Exception ex)
-        {
-            if (_userSession.CurrentUser != null)
-                _logger.LogError(ex, "Fehler beim Öffnen der AnamnesisPage für User {UserId}",
-                    _userSession.CurrentUser.Id);
-        }
-    }
+    private async Task OpenAnamnesisAsync() => await NavigationService.NavigateToAsync(Routes.AnamnesisPage);
 
     [RelayCommand]
-    private async Task OpenUserMenuAsync()
-    {
-        try
-        {
-            if (_userSession.CurrentUser != null)
-                _logger.LogInformation("Öffne UserMenuPage für User {UserId}", _userSession.CurrentUser.Id);
-            await _navigationService.NavigateToAsync(Routes.UserMenuPage);
-        }
-        catch (Exception ex)
-        {
-            if (_userSession.CurrentUser != null)
-                _logger.LogError(ex, "Fehler beim Öffnen des User-Menüs für User {UserId}",
-                    _userSession.CurrentUser.Id);
-        }
-    }
+    private async Task OpenUserMenuAsync() => await NavigationService.NavigateToAsync(Routes.UserMenuPage);
 }

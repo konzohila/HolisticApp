@@ -1,55 +1,58 @@
-using Microsoft.Extensions.Logging;
 using HolisticApp.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
-namespace HolisticApp.Services
+namespace HolisticApp.Services;
+
+public class NavigationService : INavigationService
 {
-    public class NavigationService : INavigationService
+    private readonly ILogger<NavigationService> _logger;
+    private readonly Stack<string> _navigationStack = new();
+
+    public NavigationService(ILogger<NavigationService> logger)
     {
-        private readonly ILogger<NavigationService> _logger;
+        _logger = logger;
+    }
 
-        public NavigationService(ILogger<NavigationService> logger)
-        {
-            _logger = logger;
-        }
-
-        public async Task NavigateToAsync(string route)
-        {
-            try
+    public async Task NavigateToAsync(string route)
+    {
+        try
+        { 
+            if (Shell.Current != null)
             {
-                _logger.LogInformation("Navigiere zu: {Route}", route);
+                _navigationStack.Push(Shell.Current.CurrentState.Location.OriginalString); 
                 await Shell.Current.GoToAsync(route);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler bei der Navigation zu {Route}", route);
+                _logger.LogInformation("Navigiere zu: {Route}", route);
             }
         }
-
-        public async Task GoBackAsync()
+        catch (Exception ex)
         {
-            try
+            _logger.LogError(ex, "Fehler bei Navigation zu: {Route}", route);
+        }
+    }
+
+    public async Task GoBackAsync()
+    {
+        try
+        {
+            // Falls ein Modal offen ist, schließe es zuerst
+            if (Shell.Current.Navigation.ModalStack.Count > 0)
             {
-                if (Shell.Current.CurrentPage is Views.RegistrationPage)
-                {
-                    _logger.LogInformation("Navigiere explizit zur LoginPage zurück.");
-                    await Shell.Current.GoToAsync("//LoginPage"); // Feste Navigation zur LoginPage
-                    return;
-                }
-                if (Shell.Current.Navigation.NavigationStack.Count > 1)
-                {
-                    _logger.LogInformation("Navigiere zurück zur vorherigen Seite.");
-                    await Shell.Current.GoToAsync("..");
-                }
-                else
-                {
-                    _logger.LogWarning("Kein vorheriger Navigationseintrag vorhanden, zurück zur Startseite.");
-                    await Shell.Current.GoToAsync("//HomePage"); 
-                }
+                await Shell.Current.Navigation.PopModalAsync();
+                return;
             }
-            catch (Exception ex)
+
+            // Falls eine vorherige Seite existiert, navigiere zurück
+            if (_navigationStack.Count > 0)
             {
-                _logger.LogError(ex, "Fehler bei der Zurück-Navigation.");
+                string previousPage = _navigationStack.Pop();
+                await Shell.Current.GoToAsync(previousPage);
+                return;
             }
+            _logger.LogInformation("Navigiere zurück.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler bei Navigation zurück.");
         }
     }
 }

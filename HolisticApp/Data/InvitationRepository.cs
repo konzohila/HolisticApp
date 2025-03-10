@@ -79,4 +79,9 @@ public class InvitationRepository(string connectionString, ILogger<InvitationRep
         command.Parameters.AddWithValue("@id", invitationId);
         await command.ExecuteNonQueryAsync();
     }
+
+    public Task<bool> IsUserInDatabaseAync(User user)
+    {
+        throw new NotImplementedException();
+    }
 }

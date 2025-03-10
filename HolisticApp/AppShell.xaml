@@ -21,7 +21,7 @@
     <ShellContent Route="AdminDashboardPage" ContentTemplate="{DataTemplate views:AdminDashboardPage}" />
     <ShellContent Route="DoctorDashboardPage" ContentTemplate="{DataTemplate views:DoctorDashboardPage}" />
     <ShellContent Route="DoctorRegistrationPage" ContentTemplate="{DataTemplate views:DoctorRegistrationPage}" />
-    <ShellContent Route="PatientDetailPage" ContentTemplate="{DataTemplate views:PatientDetailPage}" />
     <ShellContent Route="UserMenuPage" ContentTemplate="{DataTemplate views:UserMenuPage}" />
-
+    <ShellContent Route="SettingsPage" ContentTemplate="{DataTemplate views:SettingsPage}" />
+    <ShellContent Route="UserInfoPage" ContentTemplate="{DataTemplate views:UserInfoPage}" />
 </Shell>

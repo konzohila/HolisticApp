@@ -10,7 +10,7 @@
     BackgroundColor="{StaticResource BackgroundColor}">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
+        <ToolbarItem Text="Benutzermenü" Command="{Binding OpenUserMenuCommand}" />
     </ContentPage.ToolbarItems>
 
     <ScrollView>
@@ -18,7 +18,6 @@
             <Label Text="Ihr Einladungslink:" FontAttributes="Bold" />
             <Label Text="{Binding GeneratedInvitationLink}" LineBreakMode="WordWrap" />
             <Button Text="Einladung generieren" Command="{Binding GenerateInvitationCommand}" />
-            <Button Text="Patienten laden" Command="{Binding LoadPatientsCommand}" />
             <Label Text="Registrierte Patienten:" FontAttributes="Bold" />
             <ListView x:Name="PatientsListView" ItemsSource="{Binding Patients}">
                 <ListView.ItemTemplate>

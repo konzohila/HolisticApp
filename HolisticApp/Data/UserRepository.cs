@@ -1,241 +1,174 @@
-using HolisticApp.Data.Interfaces;
+using HolisticApp.Constants;
 using HolisticApp.Models;
+using HolisticApp.Helpers;
+using HolisticApp.Mappers;
 using Microsoft.Extensions.Logging;
-using MySqlConnector;
 
-namespace HolisticApp.Data;
-
-public class UserRepository(string connectionString, ILogger<UserRepository> logger) : IUserRepository
+namespace HolisticApp.Data
 {
-    private readonly ILogger<UserRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly string _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
-
-    private const string selectAllUsersSql = "SELECT * FROM Users";
-    private const string selectUserByIdSql = @"
-            SELECT Id, Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, MasterAccountId, Role 
-            FROM Users WHERE Id = @id";
-    private const string updateUserSql = @"
-            UPDATE Users
-            SET Username = @username, 
-                Email = @email, 
-                PasswordHash = @passwordHash,
-                CurrentComplaint = @currentComplaint,
-                Age = @age,
-                Gender = @gender,
-                Height = @height,
-                Weight = @weight,
-                Role = @role
-            WHERE Id = @id";
-    private const string insertUserSql = @"
-            INSERT INTO Users (Username, Email, PasswordHash, CurrentComplaint, Age, Gender, Height, Weight, Role)
-            VALUES (@username, @email, @passwordHash, @currentComplaint, @age, @gender, @height, @weight, @role)";
-    private const string deleteUserSql = "DELETE FROM Users WHERE Id = @id";
-
-    private async Task<MySqlConnection> GetConnectionAsync()
+    public class UserRepository : IUserRepository
     {
-        try
-        {
-            var connection = new MySqlConnection(_connectionString);
-            _logger.LogDebug("Öffne Datenbankverbindung...");
-            await connection.OpenAsync();
-            _logger.LogDebug("Datenbankverbindung erfolgreich geöffnet.");
-            return connection;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Öffnen der Datenbankverbindung.");
-            throw;
-        }
-    }
+        private readonly DbHelper _dbHelper;
+        private readonly ILogger<UserRepository> _logger;
 
-    public async Task<List<User>> GetUsersAsync()
-    {
-        var users = new List<User>();
-        try
+        public UserRepository(string connectionString, ILogger<UserRepository> logger)
         {
-            await using var connection = await GetConnectionAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = selectAllUsersSql;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _dbHelper = new DbHelper(connectionString, logger);
+        }
 
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+        public async Task<User?> GetUserByIdAsync(int id)
+        {
+            try
             {
-                users.Add(CreateUserFromReader(reader));
+                await using var connection = await _dbHelper.GetConnectionAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT * FROM Users WHERE id = @id";
+                command.Parameters.AddWithValue("@id", id);
+
+                await using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return UserMapper.CreateUserFromReader(reader, _logger);
+                }
+                _logger.LogWarning("Kein Benutzer mit ID {UserId} gefunden.", id);
+                return null;
             }
-            _logger.LogInformation("Erfolgreich {UserCount} Benutzer aus der Datenbank geladen.", users.Count);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Abrufen der Benutzerliste.");
-        }
-        return users;
-    }
-
-    public async Task<User?> GetUserAsync(int id)
-    {
-        try
-        {
-            await using var connection = await GetConnectionAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = selectUserByIdSql;
-            command.Parameters.AddWithValue("@id", id);
-
-            await using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
+            catch (Exception ex)
             {
-                _logger.LogInformation("Benutzer mit ID {UserId} erfolgreich abgerufen.", id);
-                return CreateUserFromReader(reader);
+                _logger.LogError(ex, "Fehler beim Laden des Benutzers mit ID {UserId}.", id);
+                return null;
             }
-            _logger.LogWarning("Kein Benutzer mit ID {UserId} gefunden.", id);
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Abrufen des Benutzers mit ID {UserId}.", id);
-        }
-        return null;
-    }
 
-    public async Task<int> SaveUserAsync(User user)
-    {
-        try
+        public async Task<IEnumerable<User>> GetUsersByRoleAsync(UserRole role)
         {
-            await using var connection = await GetConnectionAsync();
-            await using var command = connection.CreateCommand();
-            if (user.Id != 0)
+            var users = new List<User>();
+            try
             {
-                command.CommandText = updateUserSql;
-                command.Parameters.AddWithValue("@id", user.Id);
+                await using var connection = await _dbHelper.GetConnectionAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = SqlCommands.SelectUsersByRoleSql;
+                command.Parameters.AddWithValue("@role", role.ToString());
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    users.Add(UserMapper.CreateUserFromReader(reader, _logger));
+                }
             }
-            else
+            catch (Exception ex)
             {
-                command.CommandText = insertUserSql;
+                _logger.LogError(ex, "Fehler beim Abrufen von Benutzern mit der Rolle {Role}.", role);
             }
+            return users;
+        }
 
-            AddUserParameters(command, user);
-            var result = await command.ExecuteNonQueryAsync();
-
-            if (result > 0)
+        public async Task<bool> CreateUserAsync(User user)
+        {
+            try
             {
-                _logger.LogInformation("Benutzer (ID: {UserId}) erfolgreich gespeichert.", user.Id);
+                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.InsertUserSql, cmd =>
+                {
+                    UserMapper.AddUserParameters(cmd, user);
+                });
+                if (result > 0)
+                {
+                    _logger.LogInformation("Neuer Benutzer {Email} wurde erfolgreich erstellt.", user.Email);
+                    return true;
+                }
+                _logger.LogWarning("Erstellung des Benutzers {Email} schlug fehl.", user.Email);
+                return false;
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogWarning("Speicherung des Benutzers (ID: {UserId}) fehlgeschlagen.", user.Id);
+                _logger.LogError(ex, "Fehler beim Erstellen des Benutzers {Email}.", user.Email);
+                return false;
             }
-            return result;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Speichern des Benutzers (ID: {UserId}).", user.Id);
-            return 0;
-        }
-    }
 
-    public async Task<int> DeleteUserAsync(int id)
-    {
-        try
+        public async Task<bool> UpdateUserAsync(User user)
         {
-            await using var connection = await GetConnectionAsync();
-            await using var command = connection.CreateCommand();
-            command.CommandText = deleteUserSql;
-            command.Parameters.AddWithValue("@id", id);
-
-            var result = await command.ExecuteNonQueryAsync();
-            if (result > 0)
+            try
             {
-                _logger.LogInformation("Benutzer (ID: {UserId}) erfolgreich gelöscht.", id);
+                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.UpdateUserSql, cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@id", user.Id);
+                    UserMapper.AddUserParameters(cmd, user);
+                });
+                if (result > 0)
+                {
+                    _logger.LogInformation("Benutzer (ID: {UserId}) wurde erfolgreich aktualisiert.", user.Id);
+                    return true;
+                }
+                _logger.LogWarning("Aktualisierung des Benutzers (ID: {UserId}) schlug fehl.", user.Id);
+                return false;
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogWarning("Kein Benutzer mit ID {UserId} zum Löschen gefunden.", id);
+                _logger.LogError(ex, "Fehler beim Aktualisieren des Benutzers (ID: {UserId}).", user.Id);
+                return false;
             }
-            return result;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Löschen des Benutzers (ID: {UserId}).", id);
-            return 0;
-        }
-    }
 
-    private User CreateUserFromReader(MySqlDataReader reader)
-    {
-        try
+        public async Task<bool> DeleteUserAsync(int id)
         {
-            return new User
+            try
             {
-                Id = GetInt(reader, "Id"),
-                Username = GetString(reader, "Username"),
-                Email = GetString(reader, "Email"),
-                PasswordHash = GetString(reader, "PasswordHash"),
-                CurrentComplaint = GetString(reader, "CurrentComplaint", "Keine Beschwerden"),
-                Age = GetNullableInt(reader, "Age"),
-                Gender = GetString(reader, "Gender", "Nicht angegeben"),
-                Height = GetNullableDecimal(reader, "Height"),
-                Weight = GetNullableDecimal(reader, "Weight"),
-                MasterAccountId = GetNullableInt(reader, "MasterAccountId"),
-                Role = Enum.TryParse(GetString(reader, "Role", "Patient"), out UserRole parsedRole)
-                    ? parsedRole
-                    : UserRole.Patient
-            };
+                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.DeleteUserSql, cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                });
+                if (result > 0)
+                {
+                    _logger.LogInformation("Benutzer (ID: {UserId}) wurde erfolgreich gelöscht.", id);
+                    return true;
+                }
+                _logger.LogWarning("Kein Benutzer (ID: {UserId}) gefunden, um gelöscht zu werden.", id);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Löschen des Benutzers (ID: {UserId}).", id);
+                return false;
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Erstellen eines Benutzerobjekts aus dem Reader.");
-            throw;
-        }
-    }
 
-    private void AddUserParameters(MySqlCommand command, User user)
-    {
-        try
+        public async Task<AuthenticateResult> AuthenticateUserAsync(string emailOrUsername, string password)
         {
-            command.Parameters.AddWithValue("@username", user.Username);
-            command.Parameters.AddWithValue("@email", user.Email);
-            command.Parameters.AddWithValue("@passwordHash", user.PasswordHash);
-            command.Parameters.AddWithValue("@currentComplaint", user.CurrentComplaint);
-            command.Parameters.AddWithValue("@age", user.Age ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@gender", user.Gender);
-            command.Parameters.AddWithValue("@height", user.Height ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@weight", user.Weight ?? (object)DBNull.Value);
-            command.Parameters.AddWithValue("@role", user.Role.ToString());
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Hinzufügen von Benutzerparametern zum SQL-Befehl.");
-            throw;
-        }
-    }
+            try
+            {
+                await using var connection = await _dbHelper.GetConnectionAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = SqlCommands.SelectUserByEmailOrUsernameSql;
+                command.Parameters.AddWithValue("@value", emailOrUsername);
 
-    private string GetString(MySqlDataReader reader, string columnName, string defaultValue = "")
-    {
-        try
-        {
-            var ordinal = reader.GetOrdinal(columnName);
-            return reader.IsDBNull(ordinal) ? defaultValue : reader.GetString(ordinal);
+                await using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    var user = UserMapper.CreateUserFromReader(reader, _logger);
+                    var inputHash = HashHelper.ComputeHash(password);
+
+                    if (string.Equals(user.PasswordHash, inputHash, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation("Benutzer {EmailOrUsername} wurde erfolgreich authentifiziert.", emailOrUsername);
+                        return new AuthenticateResult(user);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Authentifizierung fehlgeschlagen: Falsches Passwort für {EmailOrUsername}.", emailOrUsername);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Authentifizierung fehlgeschlagen: Kein Benutzer für {EmailOrUsername} gefunden.", emailOrUsername);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler bei der Authentifizierung für {EmailOrUsername}.", emailOrUsername);
+            }
+            return default; // IsAuthenticated = false, User = null
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Fehler beim Abrufen des Strings für die Spalte {ColumnName}.", columnName);
-            return defaultValue;
-        }
-    }
-
-    private static int? GetNullableInt(MySqlDataReader reader, string columnName)
-    {
-        var ordinal = reader.GetOrdinal(columnName);
-        return reader.IsDBNull(ordinal) ? null : reader.GetInt32(ordinal);
-    }
-
-    private decimal? GetNullableDecimal(MySqlDataReader reader, string columnName)
-    {
-        var ordinal = reader.GetOrdinal(columnName);
-        return reader.IsDBNull(ordinal) ? null : reader.GetDecimal(ordinal);
-    }
-
-    private static int GetInt(MySqlDataReader reader, string columnName, int defaultValue = 0)
-    {
-        var ordinal = reader.GetOrdinal(columnName);
-        return reader.IsDBNull(ordinal) ? defaultValue : reader.GetInt32(ordinal);
     }
 }
