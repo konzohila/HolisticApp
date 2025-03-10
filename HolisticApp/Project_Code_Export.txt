@@ -17,6 +17,7 @@
 
 ===== Datei: App.xaml.cs =====
 ﻿using HolisticApp.Constants;
+using HolisticApp.Enums;
 using HolisticApp.Services.Interfaces;
 using HolisticApp.Models;
 using Microsoft.Extensions.Logging;
@@ -47,7 +48,17 @@ public partial class App
         try
         {
             await Task.Delay(500);
-            var user = await _userService.GetLoggedInUserAsync();
+            User? user = null;
+            if (Preferences.ContainsKey("LoggedInUserId"))
+            {
+                int userId = Preferences.Get("LoggedInUserId", 0);
+                var result = await _userService.LoginAsync(userId);
+                if (result.Status == LoginStatus.Success)
+                    user = result.User;
+                else
+                    _logger.LogInformation("[App] In Preferences hinterlegter Nutzer konnte nicht geladen werden.");
+            }
+            
             if (user == null)
             {
                 _logger.LogInformation("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");
@@ -134,6 +145,8 @@ public static class MauiProgram
         builder.Services.AddTransient<DoctorDashboardViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<UserInfoViewModel>();
+        builder.Services.AddTransient<AdminDashboardViewModel>();
+        builder.Services.AddTransient<DoctorRegistrationViewModel>();
 
         // **Views**
         builder.Services.AddTransient<Views.LoginPage>();
@@ -144,6 +157,8 @@ public static class MauiProgram
         builder.Services.AddTransient<Views.DoctorDashboardPage>();
         builder.Services.AddTransient<Views.SettingsPage>();
         builder.Services.AddTransient<Views.UserInfoPage>();
+        builder.Services.AddTransient<Views.AdminDashboardPage>();
+        builder.Services.AddTransient<Views.DoctorRegistrationPage>();
 
         return builder.Build();
     }
@@ -625,8 +640,15 @@ public partial class LoginPage
     x:DataType="viewmodels:DoctorRegistrationViewModel"
     Title="Ärzte Registrierung"
     BackgroundColor="{StaticResource BackgroundColor}">
+       
+       <ContentPage.ToolbarItems>
+              <ToolbarItem Text="Zurück" 
+                           Order="Primary"
+                           Priority="0"
+                           Command="{Binding ReturnCommand}" />
+       </ContentPage.ToolbarItems>
 
-    <ScrollView>
+       <ScrollView>
         <StackLayout Padding="30" Spacing="20" VerticalOptions="Center">
             <Label Text="Registrierung als Arzt/Therapeut" 
                    FontSize="24" 
@@ -686,6 +708,7 @@ public partial class LoginPage
     BackgroundColor="{StaticResource BackgroundColor}">
     
     <ContentPage.ToolbarItems>
+         <ToolbarItem Text="Benutzermenü" Command="{Binding OpenUserMenuCommand}" />
         <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
     </ContentPage.ToolbarItems>
     
@@ -809,13 +832,12 @@ public partial class LoginPage
     BackgroundColor="{StaticResource BackgroundColor}">
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="{Binding UserInitials}" Command="{Binding OpenUserMenuCommand}" />
+        <ToolbarItem Text="Benutzermenü" Command="{Binding OpenUserMenuCommand}" />
     </ContentPage.ToolbarItems>
 
     <ScrollView>
         <StackLayout Padding="20" Spacing="20">
             <Button Text="Doktor erstellen" Command="{Binding CreateDoctorCommand}" />
-            <Button Text="Lade Doktoren" Command="{Binding LoadDoctorsCommand}" />
             <Label Text="Doktoren:" FontAttributes="Bold" />
             <ListView ItemsSource="{Binding Doctors}">
                 <ListView.ItemTemplate>
@@ -852,7 +874,6 @@ public partial class LoginPage
     <ScrollView>
         <StackLayout Padding="20" Spacing="10">
             <Label Text="{Binding Username}" FontSize="24" FontAttributes="Bold"/>
-            <Label Text="{Binding Email}" />
             <Label Text="{Binding Age}" />
             <Label Text="{Binding Gender}" />
             <Label Text="{Binding Height}" />
@@ -975,7 +996,29 @@ namespace HolisticApp.Data
             _dbHelper = new DbHelper(connectionString, logger);
         }
 
-        public async Task<bool> SaveUserAsync(string username, string email, string password)
+        public async Task<User?> GetUserByIdAsync(int id)
+        {
+            try
+            {
+                await using var connection = await _dbHelper.GetConnectionAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT * FROM Users WHERE id = @id";
+                command.Parameters.AddWithValue("@id", id);
+                await using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return UserMapper.CreateUserFromReader(reader, _logger);
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Laden des Benutzers mit der ID {id}", id);
+                return null;
+            }
+        }
+
+        public async Task<bool> SaveUserAsync(string username, string email, string password, UserRole role)
         {
             try
             {
@@ -989,7 +1032,7 @@ namespace HolisticApp.Data
                     Gender = "Nicht angegeben",
                     Height = null,
                     Weight = null,
-                    Role = UserRole.Patient
+                    Role = role
                 };
 
                 int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.InsertUserSql, cmd =>
@@ -1098,6 +1141,28 @@ namespace HolisticApp.Data
             }
         }
 
+        public async Task<bool> IsUserInDatabaseAsync(int id)
+        {
+            try
+            {
+                var resultObj = await _dbHelper.ExecuteScalarAsync(SqlCommands.CountUserByEmailOrUsernameSql, cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@value", id);
+                });
+
+                if (resultObj != null && int.TryParse(resultObj.ToString(), out int count))
+                {
+                    return count > 0;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Überprüfen, ob der Benutzer {Value} bereits existiert.", id);
+                return false;
+            }
+        }
+
         public async Task<List<User>> FindUsersByRole(UserRole role)
         {
             var users = new List<User>();
@@ -1184,10 +1249,12 @@ namespace HolisticApp.Data.Interfaces;
 
 public interface IUserRepository
 {
-    Task<bool> SaveUserAsync(string username, string email, string password);
+    Task<User?> GetUserByIdAsync(int id);
+    Task<bool> SaveUserAsync(string username, string email, string password, UserRole role);
     Task<bool> DeleteUserAsync(int id);
     Task<bool> UpdateUserAsync(User user);
     Task<bool> IsUserInDatabaseAsync(string emailOrUsername);
+    Task<bool> IsUserInDatabaseAsync(int id);
     Task<List<User>> FindUsersByRole(UserRole role);
     Task<AuthenticateResult> AuthenticateUser(string emailOrUsername, string password);
 }
@@ -1223,6 +1290,7 @@ public partial class AdminDashboardViewModel : BaseViewModel
     public AdminDashboardViewModel(INavigationService navigationService, IUserService userService, ILogger<AdminDashboardViewModel> logger)
         : base(navigationService, userService, logger)
     {
+        InitializeAsync();
     }
 
     public async Task InitializeAsync()
@@ -1280,6 +1348,7 @@ public partial class SettingsViewModel : BaseViewModel
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Constants;
+using HolisticApp.Models;
 using HolisticApp.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -1325,7 +1394,7 @@ public partial class RegistrationViewModel : BaseViewModel
             user.MasterAccountId = await UserService.GetMasterAccountIdFromInvitationAsync(InvitationToken);*/
         }
 
-        var result = await UserService.RegisterUserAsync(Username, Email, Password);
+        var result = await UserService.RegisterUserAsync(Username, Email, Password, UserRole.Patient);
         if (result)
         {
             await Application.Current.MainPage.DisplayAlert("Erfolg", "Registrierung erfolgreich!", "OK");
@@ -1373,13 +1442,14 @@ public partial class UserInfoViewModel : BaseViewModel
         if (user == null) return;
 
         Username = user.Username;
-        Email = user.Email;
-        Age = user.Age?.ToString() ?? "Nicht angegeben";
+        Age = user.Age.HasValue ? $"{user.Age} Jahre" : "Kein Alter angegeben";
         Gender = user.Gender ?? "Nicht angegeben";
-        Height = user.Height?.ToString() ?? "Nicht angegeben";
-        Weight = user.Weight?.ToString() ?? "Nicht angegeben";
+        Height = user.Height.HasValue ? $"{user.Height} cm" : "Keine Größe angegeben";
+        Weight = user.Weight.HasValue ? $"{user.Weight} kg" : "Kein Gewicht angegeben";
         Complaint = string.IsNullOrEmpty(user.CurrentComplaint) ? "Keine Beschwerden" : user.CurrentComplaint;
-        Doctor = user.MasterAccountId?.ToString() ?? "Unbekannt";
+        /*if (user.MasterAccountId.HasValue)
+            UserService.*/
+        Doctor = user.MasterAccountId?.ToString() ?? "Kein behandelnder Therapeut angegeben";
     }
 
     [RelayCommand]
@@ -1518,6 +1588,7 @@ public partial class LoginViewModel : BaseViewModel
 ===== Datei: /Users/svenkonz/Documents/GitHub/HolisticApp/HolisticApp/ViewModels/DoctorRegistrationViewModel.cs =====
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Models;
 using HolisticApp.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -1533,6 +1604,9 @@ public partial class DoctorRegistrationViewModel : BaseViewModel
         : base(navigationService, userService, logger)
     {
     }
+    
+    [RelayCommand]
+    private async Task ReturnAsync() => await NavigationService.GoBackAsync();
 
     [RelayCommand]
     private async Task RegisterAsync()
@@ -1548,7 +1622,7 @@ public partial class DoctorRegistrationViewModel : BaseViewModel
             }
             
             Logger.LogInformation("Versuche, Doktor {Name} zu registrieren.", Username);
-            var result = await UserService.RegisterUserAsync(Username, Email, Password);
+            var result = await UserService.RegisterUserAsync(Username, Email, Password, UserRole.Doctor);
 
             if (result)
             {
@@ -1652,6 +1726,7 @@ public partial class AnamnesisViewModel : BaseViewModel
     public AnamnesisViewModel(INavigationService navigationService, IUserService userService, ILogger<AnamnesisViewModel> logger)
         : base(navigationService, userService, logger)
     {
+        InitializeAsync();
     }
 
     public async Task InitializeAsync()
@@ -1702,6 +1777,7 @@ public partial class AnamnesisViewModel : BaseViewModel
         var result = await UserService.UpdateUserAsync(user);
         if (result)
         {
+            UserService.SetAnamnesisCompleted(true);
             Logger.LogInformation("Anamnese erfolgreich gespeichert für Benutzer {UserId}", user.Id);
             await NavigationService.NavigateToAsync(Routes.HomePage);
         }
@@ -1723,6 +1799,9 @@ public partial class UserMenuViewModel : BaseViewModel
         : base(navigationService, userService, logger)
     {
     }
+    
+    [RelayCommand]
+    private async Task ReturnAsync() => await NavigationService.GoBackAsync();
 
     [RelayCommand]
     private async Task ShowInfo() => await NavigationService.NavigateToAsync(Routes.UserInfoPage);

@@ -16,11 +16,12 @@ public partial class AdminDashboardViewModel : BaseViewModel
     public AdminDashboardViewModel(INavigationService navigationService, IUserService userService, ILogger<AdminDashboardViewModel> logger)
         : base(navigationService, userService, logger)
     {
+        InitializeAsync();
     }
 
     public async Task InitializeAsync()
     {
-        var doctorList = await UserService.FindUsersByRole(UserRole.Doctor);
+        var doctorList = await UserService.GetUsersAsync(UserRole.Doctor);
         Doctors = new ObservableCollection<User>(doctorList);
     }
 

@@ -52,6 +52,8 @@ public static class MauiProgram
         builder.Services.AddTransient<DoctorDashboardViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
         builder.Services.AddTransient<UserInfoViewModel>();
+        builder.Services.AddTransient<AdminDashboardViewModel>();
+        builder.Services.AddTransient<DoctorRegistrationViewModel>();
 
         // **Views**
         builder.Services.AddTransient<Views.LoginPage>();
@@ -62,6 +64,8 @@ public static class MauiProgram
         builder.Services.AddTransient<Views.DoctorDashboardPage>();
         builder.Services.AddTransient<Views.SettingsPage>();
         builder.Services.AddTransient<Views.UserInfoPage>();
+        builder.Services.AddTransient<Views.AdminDashboardPage>();
+        builder.Services.AddTransient<Views.DoctorRegistrationPage>();
 
         return builder.Build();
     }

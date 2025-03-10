@@ -22,6 +22,7 @@ public partial class AnamnesisViewModel : BaseViewModel
     public AnamnesisViewModel(INavigationService navigationService, IUserService userService, ILogger<AnamnesisViewModel> logger)
         : base(navigationService, userService, logger)
     {
+        InitializeAsync();
     }
 
     public async Task InitializeAsync()
@@ -72,6 +73,7 @@ public partial class AnamnesisViewModel : BaseViewModel
         var result = await UserService.UpdateUserAsync(user);
         if (result)
         {
+            UserService.SetAnamnesisCompleted(true);
             Logger.LogInformation("Anamnese erfolgreich gespeichert für Benutzer {UserId}", user.Id);
             await NavigationService.NavigateToAsync(Routes.HomePage);
         }

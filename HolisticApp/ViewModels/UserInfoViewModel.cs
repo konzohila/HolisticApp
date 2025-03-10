@@ -28,13 +28,14 @@ public partial class UserInfoViewModel : BaseViewModel
         if (user == null) return;
 
         Username = user.Username;
-        Email = user.Email;
-        Age = user.Age?.ToString() ?? "Nicht angegeben";
+        Age = user.Age.HasValue ? $"{user.Age} Jahre" : "Kein Alter angegeben";
         Gender = user.Gender ?? "Nicht angegeben";
-        Height = user.Height?.ToString() ?? "Nicht angegeben";
-        Weight = user.Weight?.ToString() ?? "Nicht angegeben";
+        Height = user.Height.HasValue ? $"{user.Height} cm" : "Keine Größe angegeben";
+        Weight = user.Weight.HasValue ? $"{user.Weight} kg" : "Kein Gewicht angegeben";
         Complaint = string.IsNullOrEmpty(user.CurrentComplaint) ? "Keine Beschwerden" : user.CurrentComplaint;
-        Doctor = user.MasterAccountId?.ToString() ?? "Unbekannt";
+        /*if (user.MasterAccountId.HasValue)
+            UserService.*/
+        Doctor = user.MasterAccountId?.ToString() ?? "Kein behandelnder Therapeut angegeben";
     }
 
     [RelayCommand]

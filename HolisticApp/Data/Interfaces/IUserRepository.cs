@@ -1,13 +1,34 @@
 using HolisticApp.Models;
 
-namespace HolisticApp.Data.Interfaces;
-
 public interface IUserRepository
 {
-    Task<bool> SaveUserAsync(string username, string email, string password);
-    Task<bool> DeleteUserAsync(int id);
+    /// <summary>
+    /// Liest einen Benutzer anhand seiner ID.
+    /// </summary>
+    Task<User?> GetUserByIdAsync(int id);
+
+    /// <summary>
+    /// Liest alle Benutzer mit der angegebenen Rolle.
+    /// </summary>
+    Task<IEnumerable<User>> GetUsersByRoleAsync(UserRole role);
+
+    /// <summary>
+    /// Legt einen neuen Benutzer in der Datenbank an.
+    /// </summary>
+    Task<bool> CreateUserAsync(User user);
+
+    /// <summary>
+    /// Aktualisiert einen bestehenden Benutzer in der Datenbank.
+    /// </summary>
     Task<bool> UpdateUserAsync(User user);
-    Task<bool> IsUserInDatabaseAsync(string emailOrUsername);
-    Task<List<User>> FindUsersByRole(UserRole role);
-    Task<AuthenticateResult> AuthenticateUser(string emailOrUsername, string password);
+
+    /// <summary>
+    /// Löscht einen Benutzer anhand seiner ID.
+    /// </summary>
+    Task<bool> DeleteUserAsync(int id);
+
+    /// <summary>
+    /// Authentifiziert einen Benutzer anhand von Email/Username und Passwort.
+    /// </summary>
+    Task<AuthenticateResult> AuthenticateUserAsync(string emailOrUsername, string password);
 }

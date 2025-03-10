@@ -1,5 +1,4 @@
 using HolisticApp.Constants;
-using HolisticApp.Data.Interfaces;
 using HolisticApp.Models;
 using HolisticApp.Helpers;
 using HolisticApp.Mappers;
@@ -18,133 +17,33 @@ namespace HolisticApp.Data
             _dbHelper = new DbHelper(connectionString, logger);
         }
 
-        public async Task<bool> SaveUserAsync(string username, string email, string password)
+        public async Task<User?> GetUserByIdAsync(int id)
         {
             try
             {
-                var newUser = new User
-                {
-                    Username = username,
-                    Email = email,
-                    PasswordHash = HashHelper.ComputeHash(password),
-                    CurrentComplaint = "Keine Beschwerden",
-                    Age = null,
-                    Gender = "Nicht angegeben",
-                    Height = null,
-                    Weight = null,
-                    Role = UserRole.Patient
-                };
+                await using var connection = await _dbHelper.GetConnectionAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = "SELECT * FROM Users WHERE id = @id";
+                command.Parameters.AddWithValue("@id", id);
 
-                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.InsertUserSql, cmd =>
+                await using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
                 {
-                    UserMapper.AddUserParameters(cmd, newUser);
-                });
-
-                if (result > 0)
-                {
-                    _logger.LogInformation("Neuer Benutzer {Email} erfolgreich registriert.", email);
-                    return true;
+                    return UserMapper.CreateUserFromReader(reader, _logger);
                 }
-                else
-                {
-                    _logger.LogWarning("Registrierung des Benutzers {Email} fehlgeschlagen.", email);
-                    return false;
-                }
+                _logger.LogWarning("Kein Benutzer mit ID {UserId} gefunden.", id);
+                return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fehler beim Speichern des Benutzers {Email}.", email);
-                return false;
+                _logger.LogError(ex, "Fehler beim Laden des Benutzers mit ID {UserId}.", id);
+                return null;
             }
         }
 
-        public async Task<bool> UpdateUserAsync(User user)
-        {
-            if (user == null)
-            {
-                _logger.LogWarning("UpdateUserAsync wurde mit null übergeben.");
-                return false;
-            }
-
-            try
-            {
-                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.UpdateUserSql, cmd =>
-                {
-                    cmd.Parameters.AddWithValue("@id", user.Id);
-                    UserMapper.AddUserParameters(cmd, user);
-                });
-
-                if (result > 0)
-                {
-                    _logger.LogInformation("Benutzer (ID: {UserId}) erfolgreich aktualisiert.", user.Id);
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning("Aktualisierung des Benutzers (ID: {UserId}) fehlgeschlagen.", user.Id);
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler beim Aktualisieren des Benutzers (ID: {UserId}).", user.Id);
-                return false;
-            }
-        }
-
-        public async Task<bool> DeleteUserAsync(int id)
-        {
-            try
-            {
-                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.DeleteUserSql, cmd =>
-                {
-                    cmd.Parameters.AddWithValue("@id", id);
-                });
-
-                if (result > 0)
-                {
-                    _logger.LogInformation("Benutzer (ID: {UserId}) erfolgreich gelöscht.", id);
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning("Kein Benutzer (ID: {UserId}) gefunden, um gelöscht zu werden.", id);
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler beim Löschen des Benutzers (ID: {UserId}).", id);
-                return false;
-            }
-        }
-
-        public async Task<bool> IsUserInDatabaseAsync(string emailOrUsername)
-        {
-            try
-            {
-                var resultObj = await _dbHelper.ExecuteScalarAsync(SqlCommands.CountUserByEmailOrUsernameSql, cmd =>
-                {
-                    cmd.Parameters.AddWithValue("@value", emailOrUsername);
-                });
-
-                if (resultObj != null && int.TryParse(resultObj.ToString(), out int count))
-                {
-                    return count > 0;
-                }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fehler beim Überprüfen, ob der Benutzer {Value} bereits existiert.", emailOrUsername);
-                return false;
-            }
-        }
-
-        public async Task<List<User>> FindUsersByRole(UserRole role)
+        public async Task<IEnumerable<User>> GetUsersByRoleAsync(UserRole role)
         {
             var users = new List<User>();
-
             try
             {
                 await using var connection = await _dbHelper.GetConnectionAsync();
@@ -162,11 +61,80 @@ namespace HolisticApp.Data
             {
                 _logger.LogError(ex, "Fehler beim Abrufen von Benutzern mit der Rolle {Role}.", role);
             }
-
             return users;
         }
 
-        public async Task<AuthenticateResult> AuthenticateUser(string emailOrUsername, string password)
+        public async Task<bool> CreateUserAsync(User user)
+        {
+            try
+            {
+                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.InsertUserSql, cmd =>
+                {
+                    UserMapper.AddUserParameters(cmd, user);
+                });
+                if (result > 0)
+                {
+                    _logger.LogInformation("Neuer Benutzer {Email} wurde erfolgreich erstellt.", user.Email);
+                    return true;
+                }
+                _logger.LogWarning("Erstellung des Benutzers {Email} schlug fehl.", user.Email);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Erstellen des Benutzers {Email}.", user.Email);
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateUserAsync(User user)
+        {
+            try
+            {
+                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.UpdateUserSql, cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@id", user.Id);
+                    UserMapper.AddUserParameters(cmd, user);
+                });
+                if (result > 0)
+                {
+                    _logger.LogInformation("Benutzer (ID: {UserId}) wurde erfolgreich aktualisiert.", user.Id);
+                    return true;
+                }
+                _logger.LogWarning("Aktualisierung des Benutzers (ID: {UserId}) schlug fehl.", user.Id);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Aktualisieren des Benutzers (ID: {UserId}).", user.Id);
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteUserAsync(int id)
+        {
+            try
+            {
+                int result = await _dbHelper.ExecuteNonQueryAsync(SqlCommands.DeleteUserSql, cmd =>
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                });
+                if (result > 0)
+                {
+                    _logger.LogInformation("Benutzer (ID: {UserId}) wurde erfolgreich gelöscht.", id);
+                    return true;
+                }
+                _logger.LogWarning("Kein Benutzer (ID: {UserId}) gefunden, um gelöscht zu werden.", id);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler beim Löschen des Benutzers (ID: {UserId}).", id);
+                return false;
+            }
+        }
+
+        public async Task<AuthenticateResult> AuthenticateUserAsync(string emailOrUsername, string password)
         {
             try
             {
@@ -183,7 +151,7 @@ namespace HolisticApp.Data
 
                     if (string.Equals(user.PasswordHash, inputHash, StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.LogInformation("Benutzer {EmailOrUsername} erfolgreich authentifiziert.", emailOrUsername);
+                        _logger.LogInformation("Benutzer {EmailOrUsername} wurde erfolgreich authentifiziert.", emailOrUsername);
                         return new AuthenticateResult(user);
                     }
                     else

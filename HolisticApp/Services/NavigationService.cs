@@ -6,6 +6,7 @@ namespace HolisticApp.Services;
 public class NavigationService : INavigationService
 {
     private readonly ILogger<NavigationService> _logger;
+    private readonly Stack<string> _navigationStack = new();
 
     public NavigationService(ILogger<NavigationService> logger)
     {
@@ -15,11 +16,12 @@ public class NavigationService : INavigationService
     public async Task NavigateToAsync(string route)
     {
         try
-        {
+        { 
             if (Shell.Current != null)
             {
-                _logger.LogInformation("Navigiere zu: {Route}", route);
+                _navigationStack.Push(Shell.Current.CurrentState.Location.OriginalString); 
                 await Shell.Current.GoToAsync(route);
+                _logger.LogInformation("Navigiere zu: {Route}", route);
             }
         }
         catch (Exception ex)
@@ -32,11 +34,21 @@ public class NavigationService : INavigationService
     {
         try
         {
-            if (Shell.Current?.Navigation?.NavigationStack.Count > 1)
+            // Falls ein Modal offen ist, schließe es zuerst
+            if (Shell.Current.Navigation.ModalStack.Count > 0)
             {
-                _logger.LogInformation("Navigiere zurück.");
-                await Shell.Current.Navigation.PopAsync();
+                await Shell.Current.Navigation.PopModalAsync();
+                return;
             }
+
+            // Falls eine vorherige Seite existiert, navigiere zurück
+            if (_navigationStack.Count > 0)
+            {
+                string previousPage = _navigationStack.Pop();
+                await Shell.Current.GoToAsync(previousPage);
+                return;
+            }
+            _logger.LogInformation("Navigiere zurück.");
         }
         catch (Exception ex)
         {

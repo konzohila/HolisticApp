@@ -1,4 +1,5 @@
 ﻿using HolisticApp.Constants;
+using HolisticApp.Enums;
 using HolisticApp.Services.Interfaces;
 using HolisticApp.Models;
 using Microsoft.Extensions.Logging;
@@ -29,7 +30,17 @@ public partial class App
         try
         {
             await Task.Delay(500);
-            var user = await _userService.GetLoggedInUserAsync();
+            User? user = null;
+            if (Preferences.ContainsKey("LoggedInUserId"))
+            {
+                int userId = Preferences.Get("LoggedInUserId", 0);
+                var result = await _userService.LoginAsync(userId);
+                if (result.Status == LoginStatus.Success)
+                    user = result.User;
+                else
+                    _logger.LogInformation("[App] In Preferences hinterlegter Nutzer konnte nicht geladen werden.");
+            }
+            
             if (user == null)
             {
                 _logger.LogInformation("[App] Kein Benutzer angemeldet. Navigiere zur Login-Seite.");

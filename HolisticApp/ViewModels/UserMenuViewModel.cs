@@ -11,6 +11,9 @@ public partial class UserMenuViewModel : BaseViewModel
         : base(navigationService, userService, logger)
     {
     }
+    
+    [RelayCommand]
+    private async Task ReturnAsync() => await NavigationService.GoBackAsync();
 
     [RelayCommand]
     private async Task ShowInfo() => await NavigationService.NavigateToAsync(Routes.UserInfoPage);
@@ -21,7 +24,7 @@ public partial class UserMenuViewModel : BaseViewModel
     [RelayCommand]
     private async Task Logout()
     {
-        await UserService.LogoutUserAsync();
+        await UserService.LogoutCurrentUserAsync();
         await NavigationService.NavigateToAsync(Routes.LoginPage);
     }
 }

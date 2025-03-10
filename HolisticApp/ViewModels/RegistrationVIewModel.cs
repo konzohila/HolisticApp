@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using HolisticApp.Constants;
+using HolisticApp.Models;
 using HolisticApp.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -46,7 +47,7 @@ public partial class RegistrationViewModel : BaseViewModel
             user.MasterAccountId = await UserService.GetMasterAccountIdFromInvitationAsync(InvitationToken);*/
         }
 
-        var result = await UserService.RegisterUserAsync(Username, Email, Password);
+        var result = await UserService.RegisterUserAsync(Username, Email, Password, UserRole.Patient);
         if (result)
         {
             await Application.Current.MainPage.DisplayAlert("Erfolg", "Registrierung erfolgreich!", "OK");

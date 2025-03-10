@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using HolisticApp.Models;
 using HolisticApp.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -15,6 +16,9 @@ public partial class DoctorRegistrationViewModel : BaseViewModel
         : base(navigationService, userService, logger)
     {
     }
+    
+    [RelayCommand]
+    private async Task ReturnAsync() => await NavigationService.GoBackAsync();
 
     [RelayCommand]
     private async Task RegisterAsync()
@@ -30,7 +34,7 @@ public partial class DoctorRegistrationViewModel : BaseViewModel
             }
             
             Logger.LogInformation("Versuche, Doktor {Name} zu registrieren.", Username);
-            var result = await UserService.RegisterUserAsync(Username, Email, Password);
+            var result = await UserService.RegisterUserAsync(Username, Email, Password, UserRole.Doctor);
 
             if (result)
             {

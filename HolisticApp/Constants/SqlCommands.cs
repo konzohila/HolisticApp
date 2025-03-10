@@ -19,8 +19,8 @@ public class SqlCommands
             UPDATE Users
             SET Username = @username, 
                 Email = @email, 
-                PasswordHash = @password_hash,
-                CurrentComplaint = @current_complaint,
+                password_hash = @password_hash,
+                current_complaint = @current_complaint,
                 Age = @age,
                 Gender = @gender,
                 Height = @height,

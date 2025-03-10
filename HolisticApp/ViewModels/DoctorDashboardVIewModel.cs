@@ -19,16 +19,17 @@ public partial class DoctorDashboardViewModel : BaseViewModel
     public DoctorDashboardViewModel(INavigationService navigationService, IUserService userService, ILogger<DoctorDashboardViewModel> logger)
         : base(navigationService, userService, logger)
     {
+        InitializeAsync();
     }
 
     public async Task InitializeAsync()
     {
-        /*var user = await UserService.GetLoggedInUserAsync();
+        var user = await UserService.GetLoggedInUserAsync();
         if (user?.Role == UserRole.Doctor)
         {
-            var patientList = await UserService.GetPatientsForDoctorAsync(user.Id);
+            var patientList = await UserService.GetUsersByMasterIdAsync(user.Id);
             Patients = new ObservableCollection<User>(patientList);
-        }*/
+        }
     }
 
     [RelayCommand]
